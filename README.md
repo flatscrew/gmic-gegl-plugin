@@ -36,7 +36,7 @@ ninja -C build install
 gegl \
   -i input.png \
   -o output.png \
-  -- gmic:command command="negate"
+  -- gmic:command command="raindrops"
 ```
 
 ## 🛠 How it works (technical overview)
