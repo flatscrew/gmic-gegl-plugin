@@ -7,15 +7,6 @@ no tiling artifacts, and full **RGBA float** support.
 Originally implemented for **RasterFlow**, but it works in **any GEGL-based pipeline**,  
 including standalone `gegl` CLI or other applications embedding GEGL.
 
-## ✨ Features
-
-- ✔️ Execute any G’MIC pipeline on GEGL buffers  
-- ✔️ No tiling artifacts (thanks to full-buffer scan + ROI stitching)  
-- ✔️ Supports RGB and RGBA float  
-- ✔️ Thread-safe (forced single-execution per operation)  
-- ✔️ Works with synthetic generators (e.g. `sierpinski`, `plasma`, etc.)  
-- ✔️ Works with transforms (`watermark`, `negate`, `fx_*`, etc.)
-
 ## 📸 Example — G’MIC + GEGL in action in RasterFlow
 
 ![kapibara](kapibara-gmic.png)
