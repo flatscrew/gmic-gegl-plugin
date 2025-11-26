@@ -23,6 +23,7 @@
 #include <gegl-plugin.h>
 #include <math.h>
 #include <stdio.h>
+#include <gmic_libc.h>
 
 #ifdef GEGL_PROPERTIES
 
@@ -41,7 +42,7 @@ void gmic_run_rgba_float(float *data, int width, int height, const char *command
 
 static void prepare (GeglOperation *operation)
 {
-    const Babl *fmt = babl_format("RGBA float");
+    const Babl *fmt = babl_format("RGB float");
     gegl_operation_set_format(operation, "input",  fmt);
     gegl_operation_set_format(operation, "output", fmt);
 }
@@ -53,59 +54,75 @@ process (GeglOperation *operation,
          const GeglRectangle *roi,
          gint level)
 {
-    const Babl *format = babl_format("RGBA float");
-    GeglRectangle full = *gegl_buffer_get_extent(input);
+    const Babl *fmt = babl_format("RGB float");
 
+    GeglRectangle full = *gegl_buffer_get_extent(input);
     int w = full.width;
     int h = full.height;
 
-    float *fullbuf = g_malloc(w * h * 4 * sizeof(float));
+    int npix = w * h;
 
-    gegl_buffer_get(
-        input,
-        &full,
-        1.0,
-        format,
-        fullbuf,
-        w * 4 * sizeof(float),
-        GEGL_ABYSS_NONE
-    );
+    float *rgb = g_malloc(npix * 3 * sizeof(float));
+    float *rgba = g_malloc(npix * 4 * sizeof(float));
 
-    GeglProperties *props = GEGL_PROPERTIES(operation);
-    if (props->command && props->command[0])
-        gmic_run_rgba_float(fullbuf, w, h, props->command);
+    gegl_buffer_get(input, &full, 1.0, fmt, rgb, w * 3 * sizeof(float), GEGL_ABYSS_NONE);
 
-    int rowbytes = roi->width * 4 * sizeof(float);
-    float *line = g_malloc(rowbytes);
+    for (int i = 0; i < npix; i++) {
+        rgba[4*i+0] = rgb[3*i+0];
+        rgba[4*i+1] = rgb[3*i+1];
+        rgba[4*i+2] = rgb[3*i+2];
+        rgba[4*i+3] = 1.0f;
+    }
+
+    GeglProperties *p = GEGL_PROPERTIES(operation);
+    if (p->command && p->command[0]) {
+
+        gmic_interface_image im = {0};
+        im.data = rgba;
+        im.width = w;
+        im.height = h;
+        im.depth = 1;
+        im.spectrum = 4;
+        im.is_interleaved = true;
+        im.format = E_FORMAT_FLOAT;
+
+        unsigned int count = 1;
+
+        gmic_interface_options options;
+        memset(&options,0,sizeof(gmic_interface_options));
+        options.ignore_stdlib = false;
+        options.output_format = E_FORMAT_FLOAT;
+        options.no_inplace_processing = true;
+
+        gmic_call(p->command, &count, &im, &opt);
+    }
+
+    float *line = g_malloc(roi->width * 3 * sizeof(float));
 
     for (int yy = 0; yy < roi->height; yy++) {
 
         int sy = roi->y + yy;
-        const float *src = fullbuf + (sy * w + roi->x) * 4;
+        const float *src = rgba + (sy * w + roi->x) * 4;
 
-        memcpy(line, src, rowbytes);
+        for (int x = 0; x < roi->width; x++) {
+            const float *p = src + x*4;
+            line[3*x+0] = p[0];
+            line[3*x+1] = p[1];
+            line[3*x+2] = p[2];
+        }
 
-        GeglRectangle scan = {
-            roi->x,
-            sy,
-            roi->width,
-            1
-        };
+        GeglRectangle scan = { roi->x, sy, roi->width, 1 };
 
-        gegl_buffer_set(
-            output,
-            &scan,
-            0,
-            format,
-            line,
-            rowbytes
-        );
+        gegl_buffer_set(output, &scan, 0, fmt, line, roi->width * 3 * sizeof(float));
     }
 
     g_free(line);
-    g_free(fullbuf);
+    g_free(rgb);
+    g_free(rgba);
+
     return TRUE;
 }
+
 
 static GeglRectangle
 get_cached_region (GeglOperation *operation,

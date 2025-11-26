@@ -9,12 +9,11 @@ gegl_plugin_dir = gegl.get_pkgconfig_variable('libdir') / gegl.name()
 shared_library('gegl-gmic',
   sources: [
     'gegl_gmic.c',
-    'gegl_gmic_wrapper.cpp'
   ],
   dependencies: [gegl],
   link_args: [
     '-L/usr/lib/x86_64-linux-gnu',
-    '-lgmic',
+    '-lcgmic',
     '-lm',
     '-lpthread',
     '-lX11',
