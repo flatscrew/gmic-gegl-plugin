@@ -59,26 +59,29 @@ process (GeglOperation *operation,
     GeglRectangle full = *gegl_buffer_get_extent(input);
     int w = full.width;
     int h = full.height;
-
     int npix = w * h;
 
     float *rgb = g_malloc(npix * 3 * sizeof(float));
-    float *rgba = g_malloc(npix * 4 * sizeof(float));
-
     gegl_buffer_get(input, &full, 1.0, fmt, rgb, w * 3 * sizeof(float), GEGL_ABYSS_NONE);
 
+    float *rgba_in = g_malloc(npix * 4 * sizeof(float));
     for (int i = 0; i < npix; i++) {
-        rgba[4*i+0] = rgb[3*i+0];
-        rgba[4*i+1] = rgb[3*i+1];
-        rgba[4*i+2] = rgb[3*i+2];
-        rgba[4*i+3] = 1.0f;
+        rgba_in[4*i+0] = rgb[3*i+0];
+        rgba_in[4*i+1] = rgb[3*i+1];
+        rgba_in[4*i+2] = rgb[3*i+2];
+        rgba_in[4*i+3] = 1.0f;
     }
+
+    float *rgba_out = rgba_in;
+    int out_w = w;
+    int out_h = h;
+    int out_spectrum = 4;
 
     GeglProperties *p = GEGL_PROPERTIES(operation);
     if (p->command && p->command[0]) {
-
         gmic_interface_image im = {0};
-        im.data = rgba;
+        strcpy(im.name, "input");
+        im.data = rgba_in;
         im.width = w;
         im.height = h;
         im.depth = 1;
@@ -92,36 +95,49 @@ process (GeglOperation *operation,
         opt.interleave_output = true;
         opt.output_format = E_FORMAT_FLOAT;
         opt.ignore_stdlib = false;
-        
+        opt.no_inplace_processing = true;
+
         gmic_call(p->command, &count, &im, &opt);
+
+        rgba_out = (float *)im.data;
+        out_w = im.width;
+        out_h = im.height;
+        out_spectrum = im.spectrum;
     }
 
     float *line = g_malloc(roi->width * 3 * sizeof(float));
 
     for (int yy = 0; yy < roi->height; yy++) {
-
         int sy = roi->y + yy;
-        const float *src = rgba + (sy * w + roi->x) * 4;
+        if (sy < 0 || sy >= out_h)
+            continue;
+
+        const float *row = rgba_out + (sy * out_w + roi->x) * out_spectrum;
 
         for (int x = 0; x < roi->width; x++) {
-            const float *p = src + x*4;
-            line[3*x+0] = p[0];
-            line[3*x+1] = p[1];
-            line[3*x+2] = p[2];
+            int ix = roi->x + x;
+            if (ix < 0 || ix >= out_w)
+                continue;
+
+            const float *p0 = row + x * out_spectrum;
+            line[3*x+0] = p0[0];
+            line[3*x+1] = p0[1];
+            line[3*x+2] = p0[2];
         }
 
         GeglRectangle scan = { roi->x, sy, roi->width, 1 };
-
         gegl_buffer_set(output, &scan, 0, fmt, line, roi->width * 3 * sizeof(float));
     }
 
     g_free(line);
     g_free(rgb);
-    g_free(rgba);
+
+    if (rgba_out != rgba_in)
+        gmic_delete_external(rgba_out);
+    g_free(rgba_in);
 
     return TRUE;
 }
-
 
 static GeglRectangle
 get_cached_region (GeglOperation *operation,

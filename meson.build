@@ -31,3 +31,4 @@ executable(
 )
 
 subdir('gegl')
+subdir('gmictest')
