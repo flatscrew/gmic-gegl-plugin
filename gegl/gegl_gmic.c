@@ -91,7 +91,6 @@ process (GeglOperation *operation,
         gmic_interface_options opt = {0};
         opt.interleave_output = true;
         opt.output_format = E_FORMAT_FLOAT;
-        opt.no_inplace_processing = true;
         opt.ignore_stdlib = false;
         
         gmic_call(p->command, &count, &im, &opt);
