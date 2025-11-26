@@ -54,87 +54,104 @@ process (GeglOperation *operation,
          const GeglRectangle *roi,
          gint level)
 {
-    const Babl *fmt = babl_format("RGB float");
+    const Babl *fmt = babl_format("RGBA float");
 
     GeglRectangle full = *gegl_buffer_get_extent(input);
-    int w = full.width;
-    int h = full.height;
-    int npix = w * h;
-
-    float *rgb = g_malloc(npix * 3 * sizeof(float));
-    gegl_buffer_get(input, &full, 1.0, fmt, rgb, w * 3 * sizeof(float), GEGL_ABYSS_NONE);
+    const int w = full.width;
+    const int h = full.height;
+    const int npix = w * h;
 
     float *rgba_in = g_malloc(npix * 4 * sizeof(float));
-    for (int i = 0; i < npix; i++) {
-        rgba_in[4*i+0] = rgb[3*i+0];
-        rgba_in[4*i+1] = rgb[3*i+1];
-        rgba_in[4*i+2] = rgb[3*i+2];
-        rgba_in[4*i+3] = 1.0f;
-    }
+    gegl_buffer_get(input, &full, 1.0f, fmt,
+                    rgba_in, w * 4 * sizeof(float),
+                    GEGL_ABYSS_NONE);
+
+    for (int i = 0; i < npix * 4; i++)
+        rgba_in[i] *= 255.0f;
 
     float *rgba_out = rgba_in;
-    int out_w = w;
-    int out_h = h;
-    int out_spectrum = 4;
+    int out_w = w, out_h = h, out_spectrum = 4;
 
-    GeglProperties *p = GEGL_PROPERTIES(operation);
-    if (p->command && p->command[0]) {
-        gmic_interface_image im = {0};
-        strcpy(im.name, "input");
-        im.data = rgba_in;
-        im.width = w;
-        im.height = h;
-        im.depth = 1;
-        im.spectrum = 4;
-        im.is_interleaved = true;
-        im.format = E_FORMAT_FLOAT;
+    GeglProperties *props = GEGL_PROPERTIES(operation);
+
+    if (props->command && props->command[0]) {
+
+        gmic_interface_image img;
+        memset(&img, 0, sizeof(img));
+
+        strcpy(img.name, "input");
+
+        img.data          = rgba_in;
+        img.width         = w;
+        img.height        = h;
+        img.depth         = 1;
+        img.spectrum      = 4;
+        img.is_interleaved = true;
+        img.format        = E_FORMAT_FLOAT;
 
         unsigned int count = 1;
 
-        gmic_interface_options opt = {0};
-        opt.interleave_output = true;
-        opt.output_format = E_FORMAT_FLOAT;
-        opt.ignore_stdlib = false;
+        gmic_interface_options opt;
+        memset(&opt, 0, sizeof(opt));
+        opt.interleave_output     = true;
+        opt.output_format         = E_FORMAT_FLOAT;
+        opt.ignore_stdlib         = false;
         opt.no_inplace_processing = true;
 
-        gmic_call(p->command, &count, &im, &opt);
+        char full_cmd[2048];
+        snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", props->command);
+        gmic_call(full_cmd, &count, &img, &opt);
 
-        rgba_out = (float *)im.data;
-        out_w = im.width;
-        out_h = im.height;
-        out_spectrum = im.spectrum;
+        rgba_out     = (float*)img.data;
+        out_w        = img.width;
+        out_h        = img.height;
+        out_spectrum = img.spectrum;
     }
 
-    float *line = g_malloc(roi->width * 3 * sizeof(float));
+    float *line = g_malloc(roi->width * 4 * sizeof(float));
+    const float inv255 = 1.0f / 255.0f;
 
     for (int yy = 0; yy < roi->height; yy++) {
+
         int sy = roi->y + yy;
         if (sy < 0 || sy >= out_h)
             continue;
 
-        const float *row = rgba_out + (sy * out_w + roi->x) * out_spectrum;
-
         for (int x = 0; x < roi->width; x++) {
-            int ix = roi->x + x;
-            if (ix < 0 || ix >= out_w)
-                continue;
 
-            const float *p0 = row + x * out_spectrum;
-            line[3*x+0] = p0[0];
-            line[3*x+1] = p0[1];
-            line[3*x+2] = p0[2];
+            int ix = roi->x + x;
+            if (ix < 0 || ix >= out_w) {
+                line[4*x+0] = 0.0f;
+                line[4*x+1] = 0.0f;
+                line[4*x+2] = 0.0f;
+                line[4*x+3] = 1.0f;
+                continue;
+            }
+
+            int idx = (sy*out_w + ix) * out_spectrum;
+            const float *p = rgba_out + idx;
+
+            float r = (out_spectrum > 0) ? p[0] : 0;
+            float g = (out_spectrum > 1) ? p[1] : r;
+            float b = (out_spectrum > 2) ? p[2] : r;
+            float a = (out_spectrum > 3) ? p[3] : 255.0f;
+
+            line[4*x+0] = r * inv255;
+            line[4*x+1] = g * inv255;
+            line[4*x+2] = b * inv255;
+            line[4*x+3] = a * inv255;
         }
 
         GeglRectangle scan = { roi->x, sy, roi->width, 1 };
-        gegl_buffer_set(output, &scan, 0, fmt, line, roi->width * 3 * sizeof(float));
+        gegl_buffer_set(output, &scan, 0, fmt,
+                        line, roi->width * 4 * sizeof(float));
     }
 
     g_free(line);
-    g_free(rgb);
+    g_free(rgba_in);
 
     if (rgba_out != rgba_in)
         gmic_delete_external(rgba_out);
-    g_free(rgba_in);
 
     return TRUE;
 }
