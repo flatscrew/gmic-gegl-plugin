@@ -94,7 +94,7 @@ process (GeglOperation *operation,
         options.output_format = E_FORMAT_FLOAT;
         options.no_inplace_processing = true;
 
-        gmic_call(p->command, &count, &im, &opt);
+        gmic_call(p->command, &count, &im, &options);
     }
 
     float *line = g_malloc(roi->width * 3 * sizeof(float));
