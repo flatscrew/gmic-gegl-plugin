@@ -54,23 +54,28 @@ process (GeglOperation *operation,
          const GeglRectangle *roi,
          gint level)
 {
-    const Babl *fmt = babl_format("R'G'B'A float");
+    int channels = babl_format_get_n_components(gegl_buffer_get_format(input));
+    const Babl *fmt = babl_format("R'G'B' float");
+    if (channels == 4) {
+        fmt = babl_format("R'G'B'A float");
+    }
+    const Babl *output_fmt = babl_format("R'G'B'A float");
     
     GeglRectangle full = *gegl_buffer_get_extent(input);
     const int w = full.width;
     const int h = full.height;
     const int npix = w * h;
 
-    float *rgba_in = g_malloc(npix * 4 * sizeof(float));
+    float *rgba_in = g_malloc(npix * channels * sizeof(float));
     gegl_buffer_get(input, &full, 1.0f, fmt,
-                    rgba_in, w * 4 * sizeof(float),
+                    rgba_in, w * channels * sizeof(float),
                     GEGL_ABYSS_NONE);
 
-    for (int i = 0; i < npix * 4; i++)
+    for (int i = 0; i < npix * channels; i++)
         rgba_in[i] *= 255.0f;
 
     float *rgba_out = rgba_in;
-    int out_w = w, out_h = h, out_spectrum = 4;
+    int out_w = w, out_h = h, out_spectrum = channels;
 
     GeglProperties *props = GEGL_PROPERTIES(operation);
 
@@ -85,7 +90,7 @@ process (GeglOperation *operation,
         img.width         = w;
         img.height        = h;
         img.depth         = 1;
-        img.spectrum      = 4;
+        img.spectrum      = channels;
         img.is_interleaved = true;
         img.format        = E_FORMAT_FLOAT;
 
@@ -143,7 +148,7 @@ process (GeglOperation *operation,
         }
 
         GeglRectangle scan = { roi->x, sy, roi->width, 1 };
-        gegl_buffer_set(output, &scan, 0, fmt,
+        gegl_buffer_set(output, &scan, 0, output_fmt,
                         line, roi->width * 4 * sizeof(float));
     }
 
