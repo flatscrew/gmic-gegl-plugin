@@ -42,7 +42,7 @@ void gmic_run_rgba_float(float *data, int width, int height, const char *command
 
 static void prepare (GeglOperation *operation)
 {
-    const Babl *fmt = babl_format("RGB float");
+    const Babl *fmt = babl_format("R'G'B'A float");
     gegl_operation_set_format(operation, "input",  fmt);
     gegl_operation_set_format(operation, "output", fmt);
 }
@@ -54,8 +54,8 @@ process (GeglOperation *operation,
          const GeglRectangle *roi,
          gint level)
 {
-    const Babl *fmt = babl_format("RGBA float");
-
+    const Babl *fmt = babl_format("R'G'B'A float");
+    
     GeglRectangle full = *gegl_buffer_get_extent(input);
     const int w = full.width;
     const int h = full.height;
