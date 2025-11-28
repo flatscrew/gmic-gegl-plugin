@@ -32,7 +32,7 @@ property_string(command, _("G'MIC Command"), "")
 
 #else
 
-#define GEGL_OP_FILTER
+#define GEGL_OP_COMPOSER
 #define GEGL_OP_NAME     geglgmic
 #define GEGL_OP_C_SOURCE gegl_gmic.c
 
@@ -44,16 +44,23 @@ static void prepare (GeglOperation *operation)
 {
     const Babl *fmt = babl_format("R'G'B'A float");
     gegl_operation_set_format(operation, "input",  fmt);
+    gegl_operation_set_format(operation, "aux",  fmt);
     gegl_operation_set_format(operation, "output", fmt);
 }
 
 static gboolean
 process (GeglOperation *operation,
          GeglBuffer    *input,
+         GeglBuffer    *aux,
          GeglBuffer    *output,
          const GeglRectangle *roi,
          gint level)
 {
+    if (!input) {
+        g_warning("GEGL-GMIC: No input buffer provided.");
+        return FALSE;
+    }
+    
     int channels = babl_format_get_n_components(gegl_buffer_get_format(input));
     const Babl *fmt = babl_format("R'G'B' float");
     if (channels == 4) {
@@ -96,21 +103,37 @@ process (GeglOperation *operation,
 
         unsigned int count = 1;
 
+        char error_buffer[4096];
+        error_buffer[0] = '\0';
+        
         gmic_interface_options opt;
         memset(&opt, 0, sizeof(opt));
         opt.interleave_output     = true;
         opt.output_format         = E_FORMAT_FLOAT;
         opt.ignore_stdlib         = false;
         opt.no_inplace_processing = true;
+        opt.error_message_buffer = error_buffer;
 
         char full_cmd[2048];
         snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", props->command);
         gmic_call(full_cmd, &count, &img, &opt);
-
-        rgba_out     = (float*)img.data;
-        out_w        = img.width;
-        out_h        = img.height;
-        out_spectrum = img.spectrum;
+        
+        if (error_buffer[0] != '\0') {
+            g_warning("GEGL-GMIC error: %s", error_buffer);
+        
+            rgba_out = rgba_in;
+            out_w = w;
+            out_h = h;
+            out_spectrum = channels;
+            
+            if (rgba_out != rgba_in)
+                gmic_delete_external(rgba_out);
+        } else {
+            rgba_out     = (float*)img.data;
+            out_w        = img.width;
+            out_h        = img.height;
+            out_spectrum = img.spectrum;
+        }
     }
 
     float *line = g_malloc(roi->width * 4 * sizeof(float));
@@ -186,10 +209,10 @@ static void
 gegl_op_class_init (GeglOpClass *klass)
 {
   GeglOperationClass       *operation_class;
-  GeglOperationFilterClass *filter_class;
+  GeglOperationComposerClass *filter_class;
 
   operation_class = GEGL_OPERATION_CLASS (klass);
-  filter_class    = GEGL_OPERATION_FILTER_CLASS (klass);
+  filter_class    = GEGL_OPERATION_COMPOSER_CLASS (klass);
 
   filter_class->process = process;
   operation_class->prepare = prepare;
@@ -205,7 +228,6 @@ gegl_op_class_init (GeglOpClass *klass)
     "description", _("Runs G'MIC command, EXPERIMENTAL!"),
     "gimp:menu-path", "<Image>/Filters/G'MIC GEGL/",
     "gimp:menu-label", _("G'MIC GEGL..."),
-    "flags", "no-tiling",
     NULL);
 }
 

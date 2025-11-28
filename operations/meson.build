@@ -1,0 +1,2 @@
+subdir('generic')
+subdir('commands')

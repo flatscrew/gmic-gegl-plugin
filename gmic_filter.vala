@@ -19,43 +19,84 @@
 
 namespace Gmic {
     
-    public interface IsCommandSupported : Object {
-        public abstract bool is_supported(string command_name);
+    public interface CommandPredicate : Object {
+        public abstract bool test(string command_name);
     }
     
-    public class PrefixPredicate : Object, IsCommandSupported {
+    public class GivenCommandsPredicate : Object, CommandPredicate {
+        private string[] commands;
+    
+        public GivenCommandsPredicate(string[] commands) {
+            this.commands = commands;
+        }
+        
+        public bool test(string command_name) {
+            if (commands.length == 0) return true;
+            
+            foreach (var cmd in commands) {
+                if (cmd == command_name) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+    
+    public class PrefixPredicate : Object, CommandPredicate {
         private string prefix;
     
         public PrefixPredicate(string prefix) {
             this.prefix = prefix;
         }
     
-        public bool is_supported(string command_name) {
+        public bool test(string command_name) {
             return command_name.has_prefix(prefix);
         }
     }
     
-    public class AnyPredicate : Object, IsCommandSupported {
-        public bool is_supported(string command_name) {
+    public class AnyPredicate : Object, CommandPredicate {
+        public bool test(string command_name) {
             return true;
         }
     }
     
-    public class GmicFilterPredicate {
-        private IsCommandSupported pred;
+    public class AndPredicate : Object, CommandPredicate {
+        private GmicFilterPredicate predicate1;
+        private GmicFilterPredicate predicate2;
+        
+        public AndPredicate(GmicFilterPredicate predicate1, GmicFilterPredicate predicate2) {
+            this.predicate1 = predicate1;
+            this.predicate2 = predicate2;
+        }
+        
+        public bool test(string command_name) {
+            return predicate1.is_supported(command_name) && predicate2.is_supported(command_name);
+        }
+    }
     
-        public GmicFilterPredicate(IsCommandSupported pred) {
+    public class GmicFilterPredicate {
+        private CommandPredicate pred;
+    
+        public GmicFilterPredicate(CommandPredicate pred) {
             this.pred = pred;
         }
     
         public bool is_supported(string command_name) {
-            return pred.is_supported(command_name);
+            return pred.test(command_name);
+        }
+        
+        public GmicFilterPredicate and(GmicFilterPredicate predicate) {
+            return new GmicFilterPredicate(new AndPredicate(this, predicate));
         }
     
         public static GmicFilterPredicate has_prefix(string prefix) {
             return new GmicFilterPredicate(new PrefixPredicate(prefix));
         }
     
+        public static GmicFilterPredicate is_any_of(string[] commands) {
+            return new GmicFilterPredicate(new GivenCommandsPredicate(commands));
+        }
+        
         public static GmicFilterPredicate any() {
             return new GmicFilterPredicate(new AnyPredicate());
         }
@@ -127,7 +168,7 @@ namespace Gmic {
         }
         
         public override string details() {
-            return "choice (%s)".printf(string.joinv(",", options));
+            return "choice (%d, %s)".printf(def_index, string.joinv(",", options));
         }
     }
     
@@ -173,7 +214,10 @@ namespace Gmic {
                 return false;
             }
             
-            string rhs  = body.substring(eq + 1).strip();
+            string rhs = body.substring(eq + 1).strip();
+            if (rhs.has_prefix("~")) {
+                rhs = rhs.substring(1).strip();
+            }    
         
             if (!rhs.has_prefix("choice(") && !rhs.has_prefix("choice{"))
                 return false;
@@ -317,8 +361,8 @@ namespace Gmic {
 
             foreach (var line in lines) {
                 var trimmed = line.strip();
-                if (!trimmed.has_prefix("#@gui")) continue;
-
+                if (!trimmed.has_prefix("#@gui ")) continue;
+                
                 if (trimmed.has_prefix("#@gui :")) {
                     parse_param_line(trimmed);
                     continue;
@@ -326,6 +370,10 @@ namespace Gmic {
 
                 var filter = parse_header_line(trimmed);
                 if (filter != null) {
+                    if (current_filter != null) {
+                        current_filter = null;
+                    }
+                    
                     if (!is_command_supported(filter.command)) {
                         continue;
                     }
@@ -381,6 +429,10 @@ namespace Gmic {
             var name = body.substring(0, eq).strip();
             var rhs  = body.substring(eq + 1).strip();
         
+            if (rhs.has_prefix("~")) {
+                rhs = rhs.substring(1).strip();
+            }
+            
             if (rhs.has_prefix("float(")) {
                 var inside = remove_prefix(rhs, "float(");
                 inside = remove_suffix(inside, ")");

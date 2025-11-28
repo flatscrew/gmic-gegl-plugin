@@ -20,14 +20,71 @@
 extern unowned string gmic_version_string();
 extern unowned string gmic_decompress_stdlib();
 
-void main() {
-    print("G'MIC version: %s\n", gmic_version_string());
+class Main : Object {
     
-    var stdlib = gmic_decompress_stdlib();
-    var parser = new Gmic.GmicFilterParser(Gmic.GmicFilterPredicate.has_prefix("fx_"));
-    var gmic_operations = parser.parse_gmic_stdlib(stdlib);
-    foreach (var operation in gmic_operations) {
-        stdout.printf("\n\n%s -> %s\n", operation.name, operation.command);
-        operation.print_parameters();
+    [CCode (array_length = false, array_null_terminated = true)]
+	private static string[]? include_commands = null;
+    
+    private static bool show_parameters = false;
+    
+    private const OptionEntry[] options = {
+        {
+            "commands",
+            0,
+            0,
+            OptionArg.STRING_ARRAY,
+            ref include_commands,
+            "Display only given commands",
+            "COMMANDS..."
+        },
+        { 
+            "parameters", 
+            '\0', 
+            OptionFlags.NONE, 
+            OptionArg.NONE, 
+            ref show_parameters, 
+            "Show command parameters", null },
+        {
+            "help",
+            'h',
+            0,
+            OptionArg.NONE,
+            null,
+            "Show help",
+            null
+        },
+        { null }
+    };
+    
+    public static int main(string[] args) {
+        var context = new OptionContext("- G'MIC stdlib parser");
+        context.set_help_enabled(true);
+        context.add_main_entries(options, null);
+    
+        try {
+            context.parse(ref args);
+        } catch (OptionError e) {
+            stderr.printf("%s\n", e.message);
+            return 1;
+        }
+        
+        info("G'MIC version: %s\n", gmic_version_string());
+        
+        var stdlib = gmic_decompress_stdlib();
+        var parser = new Gmic.GmicFilterParser(
+            Gmic.GmicFilterPredicate.has_prefix("fx_").and(Gmic.GmicFilterPredicate.is_any_of(include_commands))
+        );
+        var gmic_operations = parser.parse_gmic_stdlib(stdlib);
+        foreach (var operation in gmic_operations) {
+            stdout.printf("%s -> %s\n", operation.name, operation.command);
+            
+            if (show_parameters) {
+                operation.print_parameters();
+                stdout.printf("\n\n");
+            }
+        }
+        
+        return 0;
     }
 }
+

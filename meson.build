@@ -17,7 +17,7 @@ sources = [
 inc = include_directories('.')
 
 executable(
-  'gmic-test',
+  'gmic-parser',
   sources,
   dependencies: dependencies,
   include_directories: include_directories('/usr/include'),
@@ -30,5 +30,5 @@ executable(
   ]
 )
 
-subdir('gegl')
+subdir('operations')
 subdir('gmictest')
