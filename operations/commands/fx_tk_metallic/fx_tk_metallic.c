@@ -16,7 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with RasterFlow.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
+ 
 #include "config.h"
 #include <glib/gi18n-lib.h>
 #include <gegl.h>
@@ -27,14 +28,20 @@
 
 #ifdef GEGL_PROPERTIES
 
-property_string(command, _("G'MIC Command"), "")
-    description(_("G'MIC command to run on the input buffer"))
+property_double (strength, "Strength", 1.0)
+  value_range (0.0, 1.0)
 
+property_double (smoothness, "Smoothness", 0.0)
+  value_range (0.0, 20.0)
+  
+property_enum(metal, "Metal", MetalType, metal_type, METAL_SILVER)
+  
 #else
 
 #define GEGL_OP_COMPOSER
-#define GEGL_OP_NAME     geglgmic
-#define GEGL_OP_C_SOURCE gegl_gmic.c
+#define GEGL_OP_NAME     gmicfxtkmetallic
+#define GEGL_OP_C_SOURCE fx_tk_metallic.c
+#include "enums.h"
 
 #include "gegl-op.h"
 
@@ -46,6 +53,12 @@ static void prepare (GeglOperation *operation)
     gegl_operation_set_format(operation, "input",  fmt);
     gegl_operation_set_format(operation, "aux",  fmt);
     gegl_operation_set_format(operation, "output", fmt);
+}
+
+static char* properties_string(GeglProperties *props) {
+    char *out = NULL;
+    asprintf(&out, "%f,%f,%d", props->strength, props->smoothness, props->metal);
+    return out;
 }
 
 static gboolean
@@ -88,56 +101,52 @@ process (GeglOperation *operation,
     float *rgba_out = rgba_in;
     int out_w = w, out_h = h, out_spectrum = channels;
 
+    gmic_interface_image img;
+    memset(&img, 0, sizeof(img));
+
+    strcpy(img.name, "input");
+
+    img.data          = rgba_in;
+    img.width         = w;
+    img.height        = h;
+    img.depth         = 1;
+    img.spectrum      = channels;
+    img.is_interleaved = true;
+    img.format        = E_FORMAT_FLOAT;
+
+    unsigned int count = 1;
+
+    char error_buffer[4096];
+    error_buffer[0] = '\0';
+    
+    gmic_interface_options opt;
+    memset(&opt, 0, sizeof(opt));
+    opt.interleave_output     = true;
+    opt.output_format         = E_FORMAT_FLOAT;
+    opt.ignore_stdlib         = false;
+    opt.no_inplace_processing = true;
+    opt.error_message_buffer = error_buffer;
+
     GeglProperties *props = GEGL_PROPERTIES(operation);
-
-    if (props->command && props->command[0]) {
-
-        gmic_interface_image img;
-        memset(&img, 0, sizeof(img));
-
-        strcpy(img.name, "input");
-
-        img.data          = rgba_in;
-        img.width         = w;
-        img.height        = h;
-        img.depth         = 1;
-        img.spectrum      = channels;
-        img.is_interleaved = true;
-        img.format        = E_FORMAT_FLOAT;
-
-        unsigned int count = 1;
-
-        char error_buffer[4096];
-        error_buffer[0] = '\0';
+    char full_cmd[2048];
+    snprintf(full_cmd, sizeof(full_cmd), "%s %s gui_merge_layers", "fx_tk_metallic", properties_string(props));
+    gmic_call(full_cmd, &count, &img, &opt);
+    
+    if (error_buffer[0] != '\0') {
+        g_warning("GEGL-GMIC error: %s", error_buffer);
+    
+        rgba_out = rgba_in;
+        out_w = w;
+        out_h = h;
+        out_spectrum = channels;
         
-        gmic_interface_options opt;
-        memset(&opt, 0, sizeof(opt));
-        opt.interleave_output     = true;
-        opt.output_format         = E_FORMAT_FLOAT;
-        opt.ignore_stdlib         = false;
-        opt.no_inplace_processing = true;
-        opt.error_message_buffer = error_buffer;
-
-        char full_cmd[2048];
-        snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", props->command);
-        gmic_call(full_cmd, &count, &img, &opt);
-        
-        if (error_buffer[0] != '\0') {
-            g_warning("GEGL-GMIC error: %s", error_buffer);
-        
-            rgba_out = rgba_in;
-            out_w = w;
-            out_h = h;
-            out_spectrum = channels;
-            
-            if (rgba_out != rgba_in)
-                gmic_delete_external(rgba_out);
-        } else {
-            rgba_out     = (float*)img.data;
-            out_w        = img.width;
-            out_h        = img.height;
-            out_spectrum = img.spectrum;
-        }
+        if (rgba_out != rgba_in)
+            gmic_delete_external(rgba_out);
+    } else {
+        rgba_out     = (float*)img.data;
+        out_w        = img.width;
+        out_h        = img.height;
+        out_spectrum = img.spectrum;
     }
 
     float *line = g_malloc(roi->width * 4 * sizeof(float));
@@ -225,13 +234,12 @@ gegl_op_class_init (GeglOpClass *klass)
   operation_class->get_required_for_output = get_required_for_output;
   
   gegl_operation_class_set_keys (operation_class,
-    "name",        "gmic:command",
-    "title",       _("Run G'MIC command"),
+    "name",        "gmic:fx_tk_metallic",
+    "title",       _("Metallic Look"),
     "categories",  "generic",
-    "reference-hash", "gmicruncommand",
-    "description", _("Runs G'MIC command, EXPERIMENTAL!"),
+    "reference-hash", "gmicfxtkmetallic",
     "gimp:menu-path", "<Image>/Filters/G'MIC GEGL/",
-    "gimp:menu-label", _("G'MIC GEGL..."),
+    "gimp:menu-label", _("Metallic Look"),
     NULL);
 }
 
