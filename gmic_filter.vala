@@ -108,6 +108,14 @@ namespace Gmic {
         public virtual string details() {
             return "";
         }
+        
+        public virtual string to_gegl_property() {
+            return "";
+        }
+        
+        public string normalized_name() {
+            return name.down().replace(" ", "_");
+        }
     }
     
     public class GmicFloatParam : GmicParameter {
@@ -125,6 +133,17 @@ namespace Gmic {
         public override string details() {
             return "float (%f, %f, %f)".printf(def, min, max);
         }
+        
+        public override string to_gegl_property() {
+            return """property_double ({{name_normalized}}, "{{name}}", {{default_value}})
+    value_range ({{min_value}}, {{max_value}})
+            """
+            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name}}", name)
+            .replace("{{default_value}}", "%.2f".printf(def))
+            .replace("{{min_value}}", "%.2f".printf(min))
+            .replace("{{max_value}}", "%.2f".printf(max));
+        }
     }
     
     public class GmicIntParam : GmicParameter {
@@ -141,6 +160,17 @@ namespace Gmic {
         
         public override string details() {
             return "int (%d, %d, %d)".printf(def, min, max);
+        }
+        
+        public override string to_gegl_property() {
+            return """property_int ({{name_normalized}}, "{{name}}", {{default_value}})
+    value_range ({{min_value}}, {{max_value}})
+            """
+            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name}}", name)
+            .replace("{{default_value}}", "%.2f".printf(def))
+            .replace("{{min_value}}", "%.2f".printf(min))
+            .replace("{{max_value}}", "%.2f".printf(max));
         }
     }
     
@@ -204,8 +234,19 @@ namespace Gmic {
         public string command { private set; public get; }
         public GmicCategory? category;
         
-        private List<GmicParameter> parameters = new List<GmicParameter>();
-
+        public GLib.List<GmicParameter> parameters = new List<GmicParameter>();
+        
+        public string[] gegl_parameters {
+            owned get {
+                var result = new string[parameters.length()];
+                int i = 0;
+                foreach (var p in parameters) {
+                    result[i++] = p.to_gegl_property();
+                }
+                return result;
+            }
+        }
+        
         private bool collecting_choice = false;
         private string choice_name = "";
         private int choice_default_index = 0;
@@ -214,6 +255,7 @@ namespace Gmic {
         public GmicFilter(string name, string command) {
             this.name = name;
             this.command = command;
+            this.parameters = new GLib.List<GmicParameter>();
         }
         
         public bool try_begin_choice(string body) {
