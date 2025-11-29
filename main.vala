@@ -72,11 +72,11 @@ class Main : Object {
         
         var stdlib = gmic_decompress_stdlib();
         var parser = new Gmic.GmicFilterParser(
-            Gmic.GmicFilterPredicate.has_prefix("fx_").and(Gmic.GmicFilterPredicate.is_any_of(include_commands))
+            Gmic.GmicFilterPredicate.any().and(Gmic.GmicFilterPredicate.is_any_of(include_commands))
         );
         var gmic_operations = parser.parse_gmic_stdlib(stdlib);
         foreach (var operation in gmic_operations) {
-            stdout.printf("%s -> %s\n", operation.name, operation.command);
+            stdout.printf("[%s] %s -> %s\n", operation.category?.name, operation.name, operation.command);
             
             if (show_parameters) {
                 operation.print_parameters();

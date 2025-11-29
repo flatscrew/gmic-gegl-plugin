@@ -185,9 +185,24 @@ namespace Gmic {
         }
     }
     
-    public class GmicFilter {
+    public class GmicCategory : Object {
+        
+        private List<GmicFilter> filters = new List<GmicFilter>();
+        public string name { private set; public get;}
+        
+        public GmicCategory(string name) {
+            this.name = name;
+        }
+        
+        public void add_filter(GmicFilter filter) {
+            filters.append(filter);
+        }
+    }
+    
+    public class GmicFilter : Object {
         public string name { private set; public get; }
         public string command { private set; public get; }
+        public GmicCategory? category;
         
         private List<GmicParameter> parameters = new List<GmicParameter>();
 
@@ -348,6 +363,7 @@ namespace Gmic {
     }
 
     public class GmicFilterParser {
+        private GmicCategory? current_category;
         private GmicFilter? current_filter;
         private GmicFilterPredicate filter_predicate;
         
@@ -362,6 +378,19 @@ namespace Gmic {
             foreach (var line in lines) {
                 var trimmed = line.strip();
                 if (!trimmed.has_prefix("#@gui ")) continue;
+                if (trimmed.has_prefix("#@gui _")) {
+                    var category = parse_category_line(trimmed);
+                    if (category != null) {
+                        current_category = category;
+                    }
+                    
+                    // stop before parsing Testing
+                    if (category?.name == "Testing") {
+                        return filters;
+                    }
+                    
+                    continue;
+                }
                 
                 if (trimmed.has_prefix("#@gui :")) {
                     parse_param_line(trimmed);
@@ -382,7 +411,7 @@ namespace Gmic {
                     filters.append(filter);
                 }
             }
-
+            
             return filters;
         }
         
@@ -399,13 +428,51 @@ namespace Gmic {
 
             if (command == "_none_") return null;
 
-            return new GmicFilter(name, command);
+            var filter = new GmicFilter(name, command);
+            if (current_category != null) {
+                filter.category = current_category;
+            }
+            return filter;
         }
 
         private bool is_command_supported(string command_name) {
             if (this.filter_predicate == null) return true;
             
             return filter_predicate.is_supported(command_name);
+        }
+        
+        private string? extract_category(string line) throws Error {
+            var m = Regex.match_simple(@"^#@gui _[^_]", line);
+            if (!m) {
+                return null;
+            }
+        
+            var r1 = new Regex(@"^#@gui _");
+            var s = r1.replace(line, -1, 0, "");
+        
+            var r2 = new Regex(@"<[^>]+>");
+            s = r2.replace(s, -1, 0, "");
+        
+            var category = s.strip();
+            if (category == "") {
+                return null;
+            }
+        
+            return category;
+        }
+        
+        private GmicCategory? parse_category_line(string line) {
+            string category = "Uncategorized";
+            try {
+                category = extract_category(line);
+            } catch (Error e) {
+                return null;
+            }
+            
+            if (category == null) {
+                return null;
+            }
+            return new GmicCategory(category);
         }
         
         private void parse_param_line(string line) {
