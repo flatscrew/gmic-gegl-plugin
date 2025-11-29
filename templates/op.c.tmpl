@@ -34,6 +34,7 @@
 #define GEGL_OP_NAME     gmic_{{filter.command}}
 #define GEGL_OP_C_SOURCE {{filter.command}}.c
 
+#include "enums.h"
 #include "gegl-op.h"
 
 void gmic_run_rgba_float(float *data, int width, int height, const char *command);

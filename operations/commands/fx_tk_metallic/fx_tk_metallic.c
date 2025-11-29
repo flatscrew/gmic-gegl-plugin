@@ -41,8 +41,8 @@ property_enum(metal, "Metal", MetalType, metal_type, METAL_SILVER)
 #define GEGL_OP_COMPOSER
 #define GEGL_OP_NAME     gmicfxtkmetallic
 #define GEGL_OP_C_SOURCE fx_tk_metallic.c
-#include "enums.h"
 
+#include "enums.h"
 #include "gegl-op.h"
 
 void gmic_run_rgba_float(float *data, int width, int height, const char *command);

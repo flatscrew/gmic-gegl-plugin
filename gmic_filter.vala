@@ -182,8 +182,12 @@ namespace Gmic {
             this.def = def;
         }
         
-        public override string details() {
-            return "bool (%s)".printf(def ? "true" : "false");
+        public override string to_gegl_property() {
+            return """property_bool ({{name_normalized}}, "{{name}}", {{default_value}})
+            """
+            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name}}", name)
+            .replace("{{default_value}}", "%d".printf(def ? 1 : 0));
         }
     }
     

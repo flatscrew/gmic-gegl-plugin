@@ -1,0 +1,15 @@
+shared_library('gmic-{{filter.command}}',
+  sources: [
+    gmic_runner,
+    'enums.c',
+    '{{filter.command}}.c',
+  ],
+  dependencies: [gegl],
+  link_args: [
+    '-lcgmic',
+  ],
+  include_directories: inc,
+  name_prefix: '',
+  install: true,
+  install_dir: gegl_plugin_dir,
+)
