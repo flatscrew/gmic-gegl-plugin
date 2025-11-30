@@ -40,8 +40,15 @@
     }
     
     int channels = babl_format_get_n_components(gegl_buffer_get_format(input));
+    printf("NUMBER OF CHANNELS: %d\n", channels);
+    
+    
     const Babl *fmt = babl_format("R'G'B' float");
-    if (channels == 4) {
+    if (channels == 1) {
+        fmt = babl_format("Y' float");
+    } else if (channels == 2) {
+        fmt = babl_format("Y'A float");
+    } else if (channels == 4) {
         fmt = babl_format("R'G'B'A float");
     }
     const Babl *output_fmt = babl_format("R'G'B'A float");

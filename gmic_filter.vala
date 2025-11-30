@@ -195,6 +195,32 @@ namespace Gmic {
         public int def_index;
         public string[] options;
     
+        public string enum_type_name  {
+            owned get {
+                return name.replace(" ", "") + "Type";
+            }
+        }
+        
+        public string enum_type  {
+            owned get {
+                return name.down().replace(" ", "") + "_type";
+            }
+        }
+        
+        public string[] enum_options {
+            owned get {
+                var result = new string[options.length];
+                int i = 0;
+                foreach (var p in options) {
+                    result[i++] = 
+                        name.up().replace(" ", "") 
+                        + "_" + 
+                        p.replace("\"", "").up().replace(" ", "_");
+                }
+                return result;
+            }
+        }
+        
         public GmicChoiceParam(string name, int def_index, string[] options) {
             this.name = name;
             this.def_index = def_index;
@@ -203,6 +229,16 @@ namespace Gmic {
         
         public override string details() {
             return "choice (%d, %s)".printf(def_index, string.joinv(",", options));
+        }
+        
+        public override string to_gegl_property() {
+            return """property_enum ({{name_normalized}}, "{{name}}", {{enum_type_name}}, {{enum_type}}, {{def_index}})
+            """
+            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name}}", name)
+            .replace("{{enum_type_name}}", enum_type_name)
+            .replace("{{enum_type}}", enum_type)
+            .replace("{{def_index}}", "%d".printf(def_index));
         }
     }
     

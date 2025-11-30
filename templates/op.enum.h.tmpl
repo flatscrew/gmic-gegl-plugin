@@ -1,0 +1,10 @@
+#pragma once
+#include <glib-object.h>
+
+typedef enum {
+    {{for option in choice.enum_options}}
+    {{option}}
+    {{end}}
+} {{choice.enum_type_name}};
+
+GType {{choice.enum_type}}_get_type(void);
