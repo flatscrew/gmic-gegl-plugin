@@ -130,6 +130,11 @@ namespace Gmic {
                 .replace("%", "percent")
                 .replace(".", "");
         }
+        
+        public GmicParameter append_value_prefix(int current_value) {
+            this.name += "%d".printf(current_value);
+            return this;
+        }
     }
     
     public class GmicTextParam : GmicParameter {
@@ -370,7 +375,8 @@ namespace Gmic {
         }
         
         public override string wrap_property(string normalized_name) {
-            return "gegl_color_to_hex(%s)".printf(normalized_name);
+            bool has_alpha = hex.length == 9;
+            return "gegl_color_to_rgba(%s, %s)".printf(normalized_name, has_alpha ? "true" : "false");
         }
     }
     
@@ -393,14 +399,20 @@ namespace Gmic {
         public string command { private set; public get; }
         public GmicCategory? category;
         
-        public GLib.List<GmicParameter> parameters = new List<GmicParameter>();
+        public List<GmicParameter> parameters = new List<GmicParameter>();
+        private Gee.Map<string, int> parameter_name_accumulation = new Gee.HashMap<string, int>();
         
         public string[] gegl_enums {
             owned get {
                 var result = new string[parameters.length()];
                 
                 var template = new Template.Template(new Template.TemplateLocator());
-                template.parse_path("templates/op.enum.tmpl");
+                try {
+                    template.parse_path("templates/op.enum.tmpl");
+                } catch (Error e) {
+                    warning(e.message);
+                    return result;
+                }
                 
                 var scope = new Template.Scope();
                 
@@ -412,7 +424,11 @@ namespace Gmic {
                     }
                     
                     scope["choice"].assign_object(choice_param);
-                    result[index++] = template.expand_string(scope);
+                    try {
+                        result[index++] = template.expand_string(scope);
+                    } catch (Error e) {
+                        warning(e.message);
+                    }
                 }
                 
                 return result;
@@ -603,6 +619,16 @@ namespace Gmic {
         }
         
         public void add_parameter(GmicParameter parameter) {
+            if (parameter_name_accumulation.has_key(parameter.name)) {
+                int current_value = parameter_name_accumulation.get(parameter.name);
+                parameter.append_value_prefix(++current_value);
+                parameter_name_accumulation.set(parameter.name, current_value);
+                parameters.append(parameter);
+                
+                return;
+            }
+            
+            parameter_name_accumulation.set(parameter.name, 1);
             parameters.append(parameter);
         }
         

@@ -51,7 +51,7 @@ static void prepare (GeglOperation *operation)
     gegl_operation_set_format(operation, "output", fmt);
 }
 
-char *gegl_color_to_hex(GeglColor *color)
+char *gegl_color_to_rgba(GeglColor *color, bool include_alpha)
 {
     double r, g, b, a;
     gegl_color_get_rgba(color, &r, &g, &b, &a);
@@ -59,11 +59,16 @@ char *gegl_color_to_hex(GeglColor *color)
     int Ri = (int)(r * 255.0 + 0.5);
     int Gi = (int)(g * 255.0 + 0.5);
     int Bi = (int)(b * 255.0 + 0.5);
+    int Ai = (int)(a * 255.0 + 0.5);
 
-    char *hex = g_malloc(8);
-    sprintf(hex, "#%02X%02X%02X", Ri, Gi, Bi);
+    char *out = g_malloc(24);
 
-    return hex;
+    if (include_alpha)
+        sprintf(out, "%d,%d,%d,%d", Ri, Gi, Bi, Ai);
+    else
+        sprintf(out, "%d,%d,%d", Ri, Gi, Bi);
+
+    return out;
 }
 
 static char* properties_string(GeglProperties *props) {
