@@ -728,7 +728,7 @@ namespace Gmic {
             var name = body.substring(0, eq).strip();
             var rhs  = body.substring(eq + 1).strip();
         
-            if (rhs.has_prefix("~")) {
+            if (rhs.has_prefix("~") || rhs.has_prefix("_")) {
                 rhs = rhs.substring(1).strip();
             }
             

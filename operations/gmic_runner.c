@@ -23,6 +23,62 @@
  #include <babl/babl.h>
  #include <stdio.h>
  
+ gmic_render_error(GeglBuffer    *input,
+                   GeglBuffer    *output,
+                   char          *error
+                   
+ )
+ {
+    const GeglRectangle *ext = gegl_buffer_get_extent(input);
+    const Babl *error_fmt = babl_format("R'G'B'A float");
+
+    GeglNode *graph = gegl_node_new();
+
+    GeglNode *src = gegl_node_new_child(
+        graph,
+        "operation", "gegl:buffer-source",
+        "buffer", input,
+        NULL);
+
+    GeglNode *txt = gegl_node_new_child(
+        graph,
+        "operation", "gegl:text",
+        "string", error,
+        "color", gegl_color_new("red"),
+        "size", 16.0,
+        NULL);
+
+    GeglNode *over = gegl_node_new_child(
+        graph,
+        "operation", "gegl:over",
+        NULL);
+
+    gegl_node_link(src, over);
+    gegl_node_connect_to(txt, "output", over, "aux");
+
+    float *pixels = g_malloc(ext->width * ext->height * 4 * sizeof(float));
+
+    gegl_node_blit(
+        over,
+        1.0,
+        ext,
+        error_fmt,
+        pixels,
+        GEGL_AUTO_ROWSTRIDE,
+        GEGL_BLIT_DEFAULT);
+
+    gegl_buffer_set(
+        output,
+        ext,
+        0,
+        error_fmt,
+        pixels,
+        GEGL_AUTO_ROWSTRIDE);
+
+    g_free(pixels);
+    g_object_unref(graph);
+ }
+ 
  gboolean gmic_process_buffer(GeglBuffer    *input,
                               GeglBuffer    *aux,
                               GeglBuffer    *output,
@@ -97,22 +153,17 @@
         snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", command);
         gmic_call(full_cmd, &count, &img, &opt);
         
-        if (error_buffer[0] != '\0') {
-            g_warning("GEGL-GMIC error: %s", error_buffer);
-        
-            rgba_out = rgba_in;
-            out_w = w;
-            out_h = h;
-            out_spectrum = channels;
-            
-            if (rgba_out != rgba_in)
-                gmic_delete_external(rgba_out);
-        } else {
-            rgba_out     = (float*)img.data;
-            out_w        = img.width;
-            out_h        = img.height;
-            out_spectrum = img.spectrum;
+        if (error_buffer[0] != '\0')
+        {
+            gmic_render_error(input, output, error_buffer);
+            g_free(rgba_in);
+            return TRUE;
         }
+        
+        rgba_out     = (float*)img.data;
+        out_w        = img.width;
+        out_h        = img.height;
+        out_spectrum = img.spectrum;
     }
 
     float *line = g_malloc(roi->width * 4 * sizeof(float));
