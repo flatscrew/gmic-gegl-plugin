@@ -8,11 +8,12 @@ dependencies = [
   dependency('template-glib-1.0')
 ]
 
-gmic_wrapper = 'gmic_wrapper.cpp'
+gmic_filter = files('gmic_filter.vala')
+gmic_wrapper = files('gmic_wrapper.cpp')
 
 main_sources = [
   gmic_wrapper,
-  'gmic_filter.vala',
+  gmic_filter,
   'main.vala'
 ]
 
@@ -32,27 +33,9 @@ executable(
   ]
 )
 
-generator_sources = [
-  gmic_wrapper,
-  'generator/operations_meson_build_generator.vala',
-  'generator/operation_generator.vala',
-  'gmic_filter.vala',
-  'generator.vala'
-]
-
-executable(
-  'gmic-gegl-generator',
-  generator_sources,
-  dependencies: dependencies,
-  include_directories: include_directories('/usr/include'),
-  link_args: [
-    '-L/usr/lib/x86_64-linux-gnu',
-    '-lgmic',
-    '-lm',
-    '-lpthread',
-    '-lX11',
-  ]
-)
-
 subdir('operations')
 subdir('gmictest')
+
+if get_option('with_generator')
+  subdir('generator')
+endif

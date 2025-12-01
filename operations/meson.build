@@ -8,4 +8,7 @@ gmic_runner = files('gmic_runner.c')
 inc = include_directories('.')
 
 subdir('generic')
-subdir('commands')
+
+if get_option('with_generator')
+    subdir('commands')
+endif
