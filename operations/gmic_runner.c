@@ -23,7 +23,7 @@
  #include <babl/babl.h>
  #include <stdio.h>
  
- gmic_render_error(GeglBuffer    *input,
+ void gmic_render_error(GeglBuffer    *input,
                    GeglBuffer    *output,
                    char          *error
                    
@@ -54,7 +54,7 @@
         NULL);
 
     gegl_node_link(src, over);
-    gegl_node_connect_to(txt, "output", over, "aux");
+    gegl_node_connect(txt, "output", over, "aux");
 
     float *pixels = g_malloc(ext->width * ext->height * 4 * sizeof(float));
 
