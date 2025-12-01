@@ -290,7 +290,12 @@ namespace Gmic {
                         option.down()
                             .replace("[", "")
                             .replace("]", "")
-                            .replace(" ", "-"),
+                            .replace(".", "")
+                            .replace(" ", "-")
+                            .replace("(", "")
+                            .replace(")", ")")
+                            .replace("&", "and")
+                        ,
                         option
                     );
                 }
@@ -313,15 +318,17 @@ namespace Gmic {
             return name.up()
                 .replace(" ", "")
                 .replace("(", "")
-                .replace(")", "") 
+                .replace(")", "")
                 + "_" + 
                 option
                     .replace("\"", "")
                     .replace(" ", "_")
+                    .replace("-", "_")
                     .replace("(", "")
                     .replace(")", "")
                     .replace("[", "")
                     .replace("]", "")
+                    .replace("&", "AND")
                     .up();
         }
         
@@ -814,9 +821,17 @@ namespace Gmic {
             }
             
             if (rhs.has_prefix("text(")) {
-                var inside = remove_prefix(rhs, "text(");
-                inside = remove_suffix(inside, ")");
-                return new GmicTextParam(name, inside);
+                int start = "text(".length;
+                int end = rhs.index_of_char(')', start);
+                if (end < 0)
+                    return new GmicTextParam(name, "");
+            
+                var inside = rhs.substring(start, end - start).strip();
+            
+                var parts = inside.split(",");
+                var last = parts[parts.length - 1].strip();
+            
+                return new GmicTextParam(name, last);
             }
         
             return null;
