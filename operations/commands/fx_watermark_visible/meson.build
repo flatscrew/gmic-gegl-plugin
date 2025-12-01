@@ -1,8 +1,7 @@
-# Build shared library
-shared_library('gmic-fx_tk_metallic',
+shared_library('gmic-fx_watermark_visible',
   sources: [
     gmic_runner,
-    'fx_tk_metallic.c',
+    'fx_watermark_visible.c',
   ],
   dependencies: [gegl],
   link_args: [

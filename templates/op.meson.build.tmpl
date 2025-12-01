@@ -1,7 +1,6 @@
 shared_library('gmic-{{filter.command}}',
   sources: [
     gmic_runner,
-    'enums.c',
     '{{filter.command}}.c',
   ],
   dependencies: [gegl],

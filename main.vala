@@ -24,7 +24,6 @@ class Main : Object {
     
     [CCode (array_length = false, array_null_terminated = true)]
 	private static string[]? include_commands = null;
-    private static string? output_dir = null;
     private static bool show_parameters = false;
     
     private const OptionEntry[] options = {

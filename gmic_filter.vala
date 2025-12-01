@@ -113,8 +113,41 @@ namespace Gmic {
             return "";
         }
         
+        public virtual string format() {
+            return "";
+        }
+        
         public string normalized_name() {
-            return name.down().replace(" ", "_");
+            return name.down()
+                .replace(" ", "_")
+                .replace("(", "")
+                .replace(")", "");
+        }
+    }
+    
+    public class GmicTextParam : GmicParameter {
+        
+        public string def;
+        
+        public GmicTextParam(string name, string def) {
+            this.name = name;
+            this.def = def;
+        }
+        
+        public override string details() {
+            return "text (%s)".printf(def);
+        }
+        
+        public override string to_gegl_property() {
+            return """property_string ({{name_normalized}}, _("{{name}}"), {{default_value}})
+            """
+            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name}}", name)
+            .replace("{{default_value}}", "%s".printf(def));
+        }
+        
+        public override string format() {
+            return "\\\"%s\\\"";
         }
     }
     
@@ -135,7 +168,7 @@ namespace Gmic {
         }
         
         public override string to_gegl_property() {
-            return """property_double ({{name_normalized}}, "{{name}}", {{default_value}})
+            return """property_double ({{name_normalized}}, _("{{name}}"), {{default_value}})
     value_range ({{min_value}}, {{max_value}})
             """
             .replace("{{name_normalized}}", normalized_name())
@@ -143,6 +176,10 @@ namespace Gmic {
             .replace("{{default_value}}", "%.2f".printf(def))
             .replace("{{min_value}}", "%.2f".printf(min))
             .replace("{{max_value}}", "%.2f".printf(max));
+        }
+        
+        public override string format() {
+            return "%f";
         }
     }
     
@@ -163,7 +200,7 @@ namespace Gmic {
         }
         
         public override string to_gegl_property() {
-            return """property_int ({{name_normalized}}, "{{name}}", {{default_value}})
+            return """property_int ({{name_normalized}}, _("{{name}}"), {{default_value}})
     value_range ({{min_value}}, {{max_value}})
             """
             .replace("{{name_normalized}}", normalized_name())
@@ -171,6 +208,10 @@ namespace Gmic {
             .replace("{{default_value}}", "%.2f".printf(def))
             .replace("{{min_value}}", "%.2f".printf(min))
             .replace("{{max_value}}", "%.2f".printf(max));
+        }
+        
+        public override string format() {
+            return "%d";
         }
     }
     
@@ -183,11 +224,19 @@ namespace Gmic {
         }
         
         public override string to_gegl_property() {
-            return """property_bool ({{name_normalized}}, "{{name}}", {{default_value}})
+            return """property_boolean ({{name_normalized}}, _("{{name}}"), {{default_value}})
             """
             .replace("{{name_normalized}}", normalized_name())
             .replace("{{name}}", name)
             .replace("{{default_value}}", "%d".printf(def ? 1 : 0));
+        }
+        
+        public override string details() {
+            return "boolean (%s)".printf(def ? "true" : "false");
+        }
+        
+        public override string format() {
+            return "%d";
         }
     }
     
@@ -197,13 +246,25 @@ namespace Gmic {
     
         public string enum_type_name  {
             owned get {
-                return name.replace(" ", "") + "Type";
+                return name
+                    .replace(" ", "") 
+                    .replace("(", "")
+                    .replace(")", "")
+                    .replace("[", "")
+                    .replace("]", "") 
+                    + "Type";
             }
         }
         
         public string enum_type  {
             owned get {
-                return name.down().replace(" ", "") + "_type";
+                return name.down()
+                    .replace(" ", "") 
+                    .replace("(", "")
+                    .replace(")", "")
+                    .replace("[", "")
+                    .replace("]", "") 
+                    + "_type";
             }
         }
         
@@ -211,14 +272,45 @@ namespace Gmic {
             owned get {
                 var result = new string[options.length];
                 int i = 0;
-                foreach (var p in options) {
-                    result[i++] = 
-                        name.up().replace(" ", "") 
-                        + "_" + 
-                        p.replace("\"", "").up().replace(" ", "_");
+                foreach (var option in options) {
+                    result[i++] = "(%s, %s, N_(%s))".printf(
+                        enum_value(option),
+                        option.down()
+                            .replace("[", "")
+                            .replace("]", "")
+                            .replace(" ", "-"),
+                        option
+                    );
                 }
                 return result;
             }
+        }
+        
+        public string[] enum_values {
+            owned get {
+                var result = new string[options.length];
+                int i = 0;
+                foreach (var option in options) {
+                        result[i++] = "%s%s".printf(enum_value(option), (i == options.length - 1) ? "" : ",");
+                }
+                return result;
+            }
+        }
+        
+        private string enum_value(string option) {
+            return name.up()
+                .replace(" ", "")
+                .replace("(", "")
+                .replace(")", "") 
+                + "_" + 
+                option
+                    .replace("\"", "")
+                    .replace(" ", "_")
+                    .replace("(", "")
+                    .replace(")", "")
+                    .replace("[", "")
+                    .replace("]", "")
+                    .up();
         }
         
         public GmicChoiceParam(string name, int def_index, string[] options) {
@@ -232,13 +324,17 @@ namespace Gmic {
         }
         
         public override string to_gegl_property() {
-            return """property_enum ({{name_normalized}}, "{{name}}", {{enum_type_name}}, {{enum_type}}, {{def_index}})
+            return """property_enum ({{name_normalized}}, _("{{name}}"), {{enum_type_name}}, {{enum_type}}, {{def_index}})
             """
             .replace("{{name_normalized}}", normalized_name())
             .replace("{{name}}", name)
             .replace("{{enum_type_name}}", enum_type_name)
             .replace("{{enum_type}}", enum_type)
             .replace("{{def_index}}", "%d".printf(def_index));
+        }
+        
+        public override string format() {
+            return "%d";
         }
     }
     
@@ -252,6 +348,14 @@ namespace Gmic {
         
         public override string details() {
             return "color (%s)".printf(hex);
+        }
+        
+        public override string to_gegl_property() {
+            return """property_color ({{name_normalized}}, _("{{name}}"), {{default_value}})
+            """
+            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name}}", name)
+            .replace("{{default_value}}", hex);
         }
     }
     
@@ -276,6 +380,30 @@ namespace Gmic {
         
         public GLib.List<GmicParameter> parameters = new List<GmicParameter>();
         
+        public string[] gegl_enums {
+            owned get {
+                var result = new string[parameters.length()];
+                
+                var template = new Template.Template(new Template.TemplateLocator());
+                template.parse_path("templates/op.enum.tmpl");
+                
+                var scope = new Template.Scope();
+                
+                int index = 0;
+                foreach (var param in parameters) {
+                    var choice_param = param as GmicChoiceParam;
+                    if (choice_param == null) {
+                        continue;
+                    }
+                    
+                    scope["choice"].assign_object(choice_param);
+                    result[index++] = template.expand_string(scope);
+                }
+                
+                return result;
+            }
+        }
+        
         public string[] gegl_parameters {
             owned get {
                 var result = new string[parameters.length()];
@@ -284,6 +412,28 @@ namespace Gmic {
                     result[i++] = p.to_gegl_property();
                 }
                 return result;
+            }
+        }
+        
+        public string[] gegl_parameters_names {
+            owned get {
+                var result = new string[parameters.length()];
+                int i = 0;
+                foreach (var p in parameters) {
+                    result[i++] = "%s%s".printf(p.normalized_name(), (i == parameters.length() -1) ? "" : ",");
+                }
+                return result;
+            }
+        }
+        
+        public string gegl_parameters_format {
+            owned get {
+                string[] formats = new string[parameters.length()];
+                int i = 0;
+                foreach (var p in parameters) {
+                    formats[i++] = p.format();
+                }
+                return string.joinv(",", formats);
             }
         }
         
@@ -616,6 +766,12 @@ namespace Gmic {
                 var inside = remove_prefix(rhs, "color(");
                 inside = remove_suffix(inside, ")");
                 return new GmicColorParam(name, inside);
+            }
+            
+            if (rhs.has_prefix("text(")) {
+                var inside = remove_prefix(rhs, "text(");
+                inside = remove_suffix(inside, ")");
+                return new GmicTextParam(name, inside);
             }
         
             return null;

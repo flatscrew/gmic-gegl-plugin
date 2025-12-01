@@ -35,23 +35,17 @@
         return FALSE;
     }
     
-    if (!aux) {
-        printf("AUX NULL!\n");    
-    }
+    const Babl *input_fmt = babl_format("R'G'B' float");
+    const Babl *output_fmt = babl_format("R'G'B'A float");
     
     int channels = babl_format_get_n_components(gegl_buffer_get_format(input));
-    printf("NUMBER OF CHANNELS: %d\n", channels);
-    
-    
-    const Babl *fmt = babl_format("R'G'B' float");
     if (channels == 1) {
-        fmt = babl_format("Y' float");
+        input_fmt = babl_format("Y' float");
     } else if (channels == 2) {
-        fmt = babl_format("Y'A float");
+        input_fmt = babl_format("Y'A float");
     } else if (channels == 4) {
-        fmt = babl_format("R'G'B'A float");
+        input_fmt = babl_format("R'G'B'A float");
     }
-    const Babl *output_fmt = babl_format("R'G'B'A float");
     
     GeglRectangle full = *gegl_buffer_get_extent(input);
     const int w = full.width;
@@ -59,7 +53,7 @@
     const int npix = w * h;
 
     float *rgba_in = g_malloc(npix * channels * sizeof(float));
-    gegl_buffer_get(input, &full, 1.0f, fmt,
+    gegl_buffer_get(input, &full, 1.0f, input_fmt,
                     rgba_in, w * channels * sizeof(float),
                     GEGL_ABYSS_NONE);
 
@@ -70,6 +64,8 @@
     int out_w = w, out_h = h, out_spectrum = channels;
 
     if (command && command[0]) {
+        
+        printf("running g'mic command: %s\n", command);
 
         gmic_interface_image img;
         memset(&img, 0, sizeof(img));

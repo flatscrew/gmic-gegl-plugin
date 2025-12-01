@@ -25,6 +25,11 @@
 #include <gmic_libc.h>
 
 #ifdef GEGL_PROPERTIES
+{{for gegl_enum in filter.gegl_enums}}
+{{gegl_enum}}
+
+{{end}}
+
 {{for parameter in filter.gegl_parameters}}
 {{parameter}}
 {{end}}
@@ -34,7 +39,6 @@
 #define GEGL_OP_NAME     gmic_{{filter.command}}
 #define GEGL_OP_C_SOURCE {{filter.command}}.c
 
-#include "enums.h"
 #include "gegl-op.h"
 
 void gmic_run_rgba_float(float *data, int width, int height, const char *command);
@@ -49,10 +53,10 @@ static void prepare (GeglOperation *operation)
 
 static char* properties_string(GeglProperties *props) {
     char *out = NULL;
-    asprintf(&out, "%f,%f,%d", 
-      props->strength, 
-      props->smoothness, 
-      props->metal
+    asprintf(&out, "{{filter.gegl_parameters_format}}", 
+      {{for param_name in filter.gegl_parameters_names}}
+      props->{{param_name}}
+      {{end}}
     );
     return out;
 }

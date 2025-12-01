@@ -33,6 +33,14 @@ property_double (strength, "Strength", 1.0)
 
 property_double (smoothness, "Smoothness", 0.0)
   value_range (0.0, 20.0)
+
+enum_start (metal_type)
+  enum_value (METAL_SILVER, "silver", N_("Silver"))
+  enum_value (METAL_GOLD, "gold", N_("Gold"))
+  enum_value (METAL_COPPER, "copper", N_("Copper"))
+  enum_value (METAL_BRONZE, "bronze", N_("Bronze"))
+  enum_value (METAL_BLUE_STEEL, "blue-steel", N_("Blue Steel"))
+enum_end (MetalType)
   
 property_enum(metal, "Metal", MetalType, metal_type, METAL_SILVER)
   
@@ -42,7 +50,6 @@ property_enum(metal, "Metal", MetalType, metal_type, METAL_SILVER)
 #define GEGL_OP_NAME     gmicfxtkmetallic
 #define GEGL_OP_C_SOURCE fx_tk_metallic.c
 
-#include "enums.h"
 #include "gegl-op.h"
 
 void gmic_run_rgba_float(float *data, int width, int height, const char *command);
