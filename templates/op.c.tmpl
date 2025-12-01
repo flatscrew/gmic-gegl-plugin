@@ -51,11 +51,26 @@ static void prepare (GeglOperation *operation)
     gegl_operation_set_format(operation, "output", fmt);
 }
 
+char *gegl_color_to_hex(GeglColor *color)
+{
+    double r, g, b, a;
+    gegl_color_get_rgba(color, &r, &g, &b, &a);
+
+    int Ri = (int)(r * 255.0 + 0.5);
+    int Gi = (int)(g * 255.0 + 0.5);
+    int Bi = (int)(b * 255.0 + 0.5);
+
+    char *hex = g_malloc(8);
+    sprintf(hex, "#%02X%02X%02X", Ri, Gi, Bi);
+
+    return hex;
+}
+
 static char* properties_string(GeglProperties *props) {
     char *out = NULL;
     asprintf(&out, "{{filter.gegl_parameters_format}}", 
       {{for param_name in filter.gegl_parameters_names}}
-      props->{{param_name}}
+      {{param_name}}
       {{end}}
     );
     return out;

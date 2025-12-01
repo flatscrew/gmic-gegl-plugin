@@ -117,11 +117,18 @@ namespace Gmic {
             return "";
         }
         
+        public virtual string wrap_property(string property) {
+            return property;
+        }
+        
         public string normalized_name() {
             return name.down()
                 .replace(" ", "_")
+                .replace("-", "_")
                 .replace("(", "")
-                .replace(")", "");
+                .replace(")", "")
+                .replace("%", "percent")
+                .replace(".", "");
         }
     }
     
@@ -351,11 +358,19 @@ namespace Gmic {
         }
         
         public override string to_gegl_property() {
-            return """property_color ({{name_normalized}}, _("{{name}}"), {{default_value}})
+            return """property_color ({{name_normalized}}, _("{{name}}"), "{{default_value}}")
             """
             .replace("{{name_normalized}}", normalized_name())
             .replace("{{name}}", name)
             .replace("{{default_value}}", hex);
+        }
+        
+        public override string format() {
+            return "%s";
+        }
+        
+        public override string wrap_property(string normalized_name) {
+            return "gegl_color_to_hex(%s)".printf(normalized_name);
         }
     }
     
@@ -420,7 +435,11 @@ namespace Gmic {
                 var result = new string[parameters.length()];
                 int i = 0;
                 foreach (var p in parameters) {
-                    result[i++] = "%s%s".printf(p.normalized_name(), (i == parameters.length() -1) ? "" : ",");
+                    
+                    var wrapped_property = p.wrap_property("props->%s".printf(p.normalized_name()));
+                    
+                    
+                    result[i++] = "%s%s".printf(wrapped_property, (i == parameters.length() -1) ? "" : ",");
                 }
                 return result;
             }
