@@ -532,6 +532,15 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
         public List<GmicParameter> parameters = new List<GmicParameter>();
         private Gee.Map<string, int> parameter_name_accumulation = new Gee.HashMap<string, int>();
         
+        public string normalized_category_name {
+            owned get {
+                return category?.name
+                    .replace(" ", "_")
+                    .replace(" & ", "_and_")
+                    .down();
+            }
+        }
+        
         public string[] gegl_enums {
             owned get {
                 var unique_enums = new Gee.ArrayList<string>();

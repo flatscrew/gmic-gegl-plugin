@@ -140,7 +140,7 @@ gegl_op_class_init (GeglOpClass *klass)
   gegl_operation_class_set_keys (operation_class,
     "name",        "gmic:{{filter.command}}",
     "title",       _("{{filter.name}}"),
-    "categories",  "generic",
+    "categories",  "{{filter.normalized_category_name}}",
     "reference-hash", "gmic_{{filter.command}}",
     "gimp:menu-path", "<Image>/Filters/G'MIC GEGL/",
     "gimp:menu-label", _("{{filter.name}}"),
