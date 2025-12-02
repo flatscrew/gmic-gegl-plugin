@@ -156,7 +156,7 @@ namespace Gmic {
         }
         
         public virtual string wrap_property(string property) {
-            return property;
+            return "props->%s".printf(property);
         }
         
         public string safe_name {
@@ -181,6 +181,22 @@ namespace Gmic {
     public class GmicTextParam : GmicParameter {
         
         public string def;
+        
+        public GmicTextParam.from(string name, string param_definition) {
+            var contents = "";
+            var start = "text(".length;
+            var end = param_definition.index_of_char(')', start);
+            if (end >= 0) {
+                var inside = param_definition.substring(start, end - start).strip();
+                if (inside.has_prefix("\"")) {
+                    contents = inside;
+                } else {
+                    var parts = inside.split("\"");
+                    contents = "\"%s\"".printf(parts[1].strip());
+                }
+            }
+            this(name, contents);
+        }
         
         public GmicTextParam(string name, string def) {
             this.name = name;
@@ -209,6 +225,14 @@ namespace Gmic {
         public double min;
         public double max;
     
+        public GmicFloatParam.from(string name, string param_definition) {
+            var inside = remove_prefix(param_definition, "float(");
+            inside = remove_suffix(inside, ")");
+            var p = inside.split(",");
+            
+            this(name, double.parse(p[0]), double.parse(p[1]), double.parse(p[2]));
+        }
+        
         public GmicFloatParam(string name, double def, double min, double max) {
             this.name = name;
             this.def = def;
@@ -241,6 +265,14 @@ namespace Gmic {
         public int min;
         public int max;
     
+        public GmicIntParam.from(string name, string param_definition) {
+            var inside = remove_prefix(param_definition, "int(");
+            inside = remove_suffix(inside, ")");
+            var p = inside.split(",");
+            
+            this(name, int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
+        }
+        
         public GmicIntParam(string name, int def, int min, int max) {
             this.name = name;
             this.def = def;
@@ -271,6 +303,12 @@ namespace Gmic {
     public class GmicBoolParam : GmicParameter {
         public bool def;
     
+        public GmicBoolParam.from(string name, string param_definition) {
+            var inside = remove_prefix(param_definition, "bool(");
+            inside = remove_suffix(inside, ")");
+            this(name, inside == "1");   
+        }
+        
         public GmicBoolParam(string name, bool def) {
             this.name = name;
             this.def = def;
@@ -383,6 +421,12 @@ namespace Gmic {
     public class GmicColorParam : GmicParameter {
         public string hex;
     
+        public GmicColorParam.from(string name, string param_definition) {
+            var inside = remove_prefix(param_definition, "color(");
+            inside = remove_suffix(inside, ")");
+            this(name, inside);
+        }
+        
         public GmicColorParam(string name, string hex) {
             this.name = name;
             this.hex = hex;
@@ -406,7 +450,63 @@ namespace Gmic {
         
         public override string wrap_property(string normalized_name) {
             bool has_alpha = hex.length == 9;
-            return "gegl_color_to_rgba(%s, %s)".printf(normalized_name, has_alpha ? "true" : "false");
+            return "gegl_color_to_rgba(props->%s, %s)".printf(normalized_name, has_alpha ? "true" : "false");
+        }
+    }
+    
+    public class GmicPointParam : GmicParameter {
+        public int x;
+        public int y;
+        public int min;
+        public int max;
+    
+        public GmicPointParam.from(string name, string param_definition) {
+            var inside = remove_prefix(param_definition, "point(");
+            inside = remove_suffix(inside, ")");
+            
+            var parts = inside.split(",");
+            var px = parts.length > 0 ? int.parse(parts[0]) : 0;
+            var py = parts.length > 1 ? int.parse(parts[1]) : 0;
+            var pmin = parts.length > 2 ? double.parse(parts[2]) : 0.0;
+            var pmax = parts.length > 3 ? double.parse(parts[3]) : 1.0;
+            
+            this(name, px, py, (int) (pmin * 100), (int) (pmax * 100));
+        }
+        
+        public GmicPointParam(string name, int x, int y, int min, int max) {
+            this.name = name;
+            this.x = x;
+            this.y = y;
+            this.min = min;
+            this.max = max;
+        }
+        
+        public override string details() {
+            return "point (%d,%d,%d,%d)".printf(x, y, min, max);
+        }
+        
+        
+        public override string to_gegl_property() {
+            return """property_double ({{name_normalized}}_x, _("{{name}} X"), {{default_value_x}})
+value_range ({{min_value}}, {{max_value}})
+
+property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
+    value_range ({{min_value}}, {{max_value}})
+            """
+            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name}}", safe_name)
+            .replace("{{default_value_x}}", "%.2f".printf(x))
+            .replace("{{default_value_y}}", "%.2f".printf(y))
+            .replace("{{min_value}}", "%.2f".printf(min))
+            .replace("{{max_value}}", "%.2f".printf(max));
+        }
+        
+        public override string wrap_property(string normalized_name) {
+            return "props->%s_x,\nprops->%s_y".printf(normalized_name, normalized_name);
+        }
+        
+        public override string format() {
+            return "%f,%f";
         }
     }
     
@@ -487,10 +587,7 @@ namespace Gmic {
                 var result = new string[parameters.length()];
                 int i = 0;
                 foreach (var p in parameters) {
-                    
-                    var wrapped_property = p.wrap_property("props->%s".printf(p.normalized_name()));
-                    
-                    
+                    var wrapped_property = p.wrap_property(p.normalized_name());
                     result[i++] = "%s%s".printf(wrapped_property, (i == parameters.length() -1) ? "" : ",");
                 }
                 return result;
@@ -829,56 +926,27 @@ namespace Gmic {
             }
             
             if (rhs.has_prefix("float(")) {
-                var inside = remove_prefix(rhs, "float(");
-                inside = remove_suffix(inside, ")");
-                var p = inside.split(",");
-                return new GmicFloatParam(
-                    name,
-                    double.parse(p[0]),
-                    double.parse(p[1]),
-                    double.parse(p[2])
-                );
+                return new GmicFloatParam.from(name, rhs);
             }
         
             if (rhs.has_prefix("int(")) {
-                var inside = remove_prefix(rhs, "int(");
-                inside = remove_suffix(inside, ")");
-                var p = inside.split(",");
-                return new GmicIntParam(
-                    name,
-                    int.parse(p[0]),
-                    int.parse(p[1]),
-                    int.parse(p[2])
-                );
+                return new GmicIntParam.from(name, rhs);
             }
         
             if (rhs.has_prefix("bool(")) {
-                var inside = remove_prefix(rhs, "bool(");
-                inside = remove_suffix(inside, ")");
-                return new GmicBoolParam(name, inside == "1");
+                return new GmicBoolParam.from(name, rhs);
             }
         
             if (rhs.has_prefix("color(")) {
-                var inside = remove_prefix(rhs, "color(");
-                inside = remove_suffix(inside, ")");
-                return new GmicColorParam(name, inside);
+                return new GmicColorParam.from(name, rhs);
             }
             
             if (rhs.has_prefix("text(")) {
-                int start = "text(".length;
-                int end = rhs.index_of_char(')', start);
-                if (end < 0)
-                    return new GmicTextParam(name, "");
+                return new GmicTextParam.from(name, rhs);
+            }
             
-                var inside = rhs.substring(start, end - start).strip();
-                if (inside.has_prefix("\"")) {
-                    return new GmicTextParam(name, inside);
-                }
-                
-                var parts = inside.split("\"");
-                var text = "\"%s\"".printf(parts[1].strip());
-            
-                return new GmicTextParam(name, text);
+            if (rhs.has_prefix("point(")) {
+                return new GmicPointParam.from(name, rhs);
             }
         
             return null;
