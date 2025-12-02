@@ -159,6 +159,10 @@ namespace Gmic {
             return "props->%s".printf(property);
         }
         
+        protected GmicParameter(string name) {
+            this.name = name;
+        }
+        
         public string safe_name {
             owned get {
                 return name
@@ -199,7 +203,7 @@ namespace Gmic {
         }
         
         public GmicTextParam(string name, string def) {
-            this.name = name;
+            base(name);
             this.def = def;
         }
         
@@ -234,7 +238,7 @@ namespace Gmic {
         }
         
         public GmicFloatParam(string name, double def, double min, double max) {
-            this.name = name;
+            base(name);
             this.def = def;
             this.min = min;
             this.max = max;
@@ -274,7 +278,7 @@ namespace Gmic {
         }
         
         public GmicIntParam(string name, int def, int min, int max) {
-            this.name = name;
+            base(name);
             this.def = def;
             this.min = min;
             this.max = max;
@@ -310,7 +314,7 @@ namespace Gmic {
         }
         
         public GmicBoolParam(string name, bool def) {
-            this.name = name;
+            base(name);
             this.def = def;
         }
         
@@ -334,11 +338,22 @@ namespace Gmic {
     public class GmicChoiceParam : GmicParameter {
         public int def_index;
         public string[] options;
+        private string related_command;
     
         public string enum_type_name  {
             owned get {
-                return normalize(name) + "Type";
+                return normalize(name) + "Type" + pascalize(related_command);
             }
+        }
+        
+        string pascalize(string s) {
+            var parts = s.split("_");
+            for (int i = 0; i < parts.length; i++) {
+                if (parts[i].length == 0) continue;
+                parts[i] = parts[i].substring(0,1).up() +
+                           parts[i].substring(1).down();
+            }
+            return string.joinv("", parts);
         }
         
         public string enum_type  {
@@ -378,10 +393,11 @@ namespace Gmic {
                 
         }
         
-        public GmicChoiceParam(string name, int def_index, string[] options) {
-            this.name = name;
+        public GmicChoiceParam(string related_command, string name, int def_index, string[] options) {
+            base(name);
             this.def_index = def_index;
             this.options = normalize_options(options);
+            this.related_command = related_command;
         }
         
         private string[] normalize_options(string[] options) {
@@ -409,7 +425,7 @@ namespace Gmic {
             .replace("{{name_normalized}}", normalized_name())
             .replace("{{name}}", name)
             .replace("{{enum_type_name}}", enum_type_name)
-            .replace("{{enum_type}}", enum_type)
+            .replace("{{enum_type}}", "%s_%s".printf(enum_type, related_command))
             .replace("{{def_index}}", "%d".printf(def_index));
         }
         
@@ -422,13 +438,14 @@ namespace Gmic {
         public string hex;
     
         public GmicColorParam.from(string name, string param_definition) {
-            var inside = remove_prefix(param_definition, "color(");
-            inside = remove_suffix(inside, ")");
+            var start = "color(".length;
+            var end = param_definition.index_of_char(')', start);
+            var inside = param_definition.substring(start, end - start).strip();
             this(name, inside);
         }
         
         public GmicColorParam(string name, string hex) {
-            this.name = name;
+            base(name);
             this.hex = hex;
         }
         
@@ -474,7 +491,7 @@ namespace Gmic {
         }
         
         public GmicPointParam(string name, int x, int y, int min, int max) {
-            this.name = name;
+            base(name);
             this.x = x;
             this.y = y;
             this.min = min;
@@ -567,6 +584,7 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
                         continue;
                     }
                     
+                    scope["command"].assign_string(command);
                     scope["choice"].assign_object(choice_param);
                     try {
                         result[index++] = template.expand_string(scope);
@@ -680,7 +698,7 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
                         opts += t;
                 }
         
-                add_parameter(new GmicChoiceParam(name, def_index, opts));
+                add_parameter(new GmicChoiceParam(this.command, name, def_index, opts));
                 return true;
             }
         
@@ -723,6 +741,7 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
                     choice_items += cleaned;
         
                 var p = new GmicChoiceParam(
+                    this.command, 
                     choice_name,
                     choice_default_index,
                     choice_items
@@ -750,6 +769,7 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
         
             if (body.contains("}")) {
                 var p = new GmicChoiceParam(
+                    this.command, 
                     choice_name,
                     choice_default_index,
                     choice_items
