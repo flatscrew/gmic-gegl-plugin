@@ -19,16 +19,12 @@
 
 namespace Gmic {
     
-    public static string normalize(
+    string normalize(
         string text, 
         bool remove_parenthesis = true, 
-        string space_replacemenet = "_") 
+        string space_replacemenet = "") 
     {
         var normalized = text;
-        if (text.length > 0 && text[0].isdigit ()) {
-            normalized = "_%s".printf(normalized);
-        }
-        
         if (remove_parenthesis) {
             normalized = normalized.replace("\"", "");
         }
@@ -53,7 +49,18 @@ namespace Gmic {
             .replace("^", "_")
             .replace("%", "percent")
             .replace("&", "and")
+            .replace("φ", "")
             .replace(".", "");
+    }
+    
+    string pascalize(string s) {
+        var parts = s.split("_");
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].length == 0) continue;
+            parts[i] = parts[i].substring(0,1).up() +
+                       parts[i].substring(1).down();
+        }
+        return string.joinv("", parts);
     }
     
     public interface CommandPredicate : Object {
@@ -176,6 +183,14 @@ namespace Gmic {
             return "%s%s".printf(normalize(name).down(), suffix);
         }
         
+        public string digit_safe_name() {
+            var normalized = normalized_name();
+            if (normalized.length > 0 && normalized[0].isdigit ()) {
+                normalized = "x_%s".printf(normalized);
+            }
+            return normalized;
+        }
+        
         public GmicParameter append_value_suffix(int current_value) {
             this.suffix = "%d".printf(current_value);
             return this;
@@ -214,7 +229,7 @@ namespace Gmic {
         public override string to_gegl_property() {
             return """property_string ({{name_normalized}}, _("{{name}}"), {{default_value}})
             """
-            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name_normalized}}", digit_safe_name())
             .replace("{{name}}", name)
             .replace("{{default_value}}", "%s".printf(def));
         }
@@ -252,7 +267,7 @@ namespace Gmic {
             return """property_double ({{name_normalized}}, _("{{name}}"), {{default_value}})
     value_range ({{min_value}}, {{max_value}})
             """
-            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name_normalized}}", digit_safe_name())
             .replace("{{name}}", safe_name)
             .replace("{{default_value}}", "%.2f".printf(def))
             .replace("{{min_value}}", "%.2f".printf(min))
@@ -292,7 +307,7 @@ namespace Gmic {
             return """property_int ({{name_normalized}}, _("{{name}}"), {{default_value}})
     value_range ({{min_value}}, {{max_value}})
             """
-            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name_normalized}}", digit_safe_name())
             .replace("{{name}}", name)
             .replace("{{default_value}}", "%.2f".printf(def))
             .replace("{{min_value}}", "%.2f".printf(min))
@@ -321,7 +336,7 @@ namespace Gmic {
         public override string to_gegl_property() {
             return """property_boolean ({{name_normalized}}, _("{{name}}"), {{default_value}})
             """
-            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name_normalized}}", digit_safe_name())
             .replace("{{name}}", name)
             .replace("{{default_value}}", "%d".printf(def ? 1 : 0));
         }
@@ -342,18 +357,8 @@ namespace Gmic {
     
         public string enum_type_name  {
             owned get {
-                return normalize(name) + "Type" + pascalize(related_command);
+                return pascalize(related_command) + normalize(name) + "Type";
             }
-        }
-        
-        string pascalize(string s) {
-            var parts = s.split("_");
-            for (int i = 0; i < parts.length; i++) {
-                if (parts[i].length == 0) continue;
-                parts[i] = parts[i].substring(0,1).up() +
-                           parts[i].substring(1).down();
-            }
-            return string.joinv("", parts);
         }
         
         public string enum_type  {
@@ -389,7 +394,7 @@ namespace Gmic {
         }
         
         private string enum_value(int option_index) {
-            return normalize(name) + "_%d".printf(option_index);
+            return digit_safe_name() + "_%d".printf(option_index);
                 
         }
         
@@ -422,10 +427,10 @@ namespace Gmic {
         public override string to_gegl_property() {
             return """property_enum ({{name_normalized}}, _("{{name}}"), {{enum_type_name}}, {{enum_type}}, {{def_index}})
             """
-            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name_normalized}}", digit_safe_name())
             .replace("{{name}}", name)
             .replace("{{enum_type_name}}", enum_type_name)
-            .replace("{{enum_type}}", "%s_%s".printf(enum_type, related_command))
+            .replace("{{enum_type}}", "%s_%s".printf(related_command, enum_type))
             .replace("{{def_index}}", "%d".printf(def_index));
         }
         
@@ -456,7 +461,7 @@ namespace Gmic {
         public override string to_gegl_property() {
             return """property_color ({{name_normalized}}, _("{{name}}"), "{{default_value}}")
             """
-            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name_normalized}}", digit_safe_name())
             .replace("{{name}}", name)
             .replace("{{default_value}}", hex);
         }
@@ -510,7 +515,7 @@ value_range ({{min_value}}, {{max_value}})
 property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
     value_range ({{min_value}}, {{max_value}})
             """
-            .replace("{{name_normalized}}", normalized_name())
+            .replace("{{name_normalized}}", digit_safe_name())
             .replace("{{name}}", safe_name)
             .replace("{{default_value_x}}", "%.2f".printf(x))
             .replace("{{default_value_y}}", "%.2f".printf(y))
@@ -614,7 +619,7 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
                 var result = new string[parameters.length()];
                 int i = 0;
                 foreach (var p in parameters) {
-                    var wrapped_property = p.wrap_property(p.normalized_name());
+                    var wrapped_property = p.wrap_property(p.digit_safe_name());
                     result[i++] = "%s%s".printf(wrapped_property, (i == parameters.length() -1) ? "" : ",");
                 }
                 return result;
