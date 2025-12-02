@@ -19,6 +19,43 @@
 
 namespace Gmic {
     
+    public static string normalize(
+        string text, 
+        bool remove_parenthesis = true, 
+        string space_replacemenet = "_") 
+    {
+        var normalized = text;
+        if (text.length > 0 && text[0].isdigit ()) {
+            normalized = "_%s".printf(normalized);
+        }
+        
+        if (remove_parenthesis) {
+            normalized = normalized.replace("\"", "");
+        }
+        
+        return normalized
+            .replace(" ", space_replacemenet)
+            .replace("-", "_")
+            .replace("(", "")
+            .replace(")", "")
+            .replace("[", "")
+            .replace("]", "") 
+            .replace("]", "") 
+            .replace("+", "_plus")
+            .replace("/", "")
+            .replace("!", "")
+            .replace("°", "")
+            .replace("'", "")
+            .replace(":", "")
+            .replace(";", "")
+            .replace("#", "")
+            .replace("*", "_")
+            .replace("^", "_")
+            .replace("%", "percent")
+            .replace("&", "and")
+            .replace(".", "");
+    }
+    
     public interface CommandPredicate : Object {
         public abstract bool test(string command_name);
     }
@@ -104,6 +141,7 @@ namespace Gmic {
     
     public abstract class GmicParameter : Object {
         public string name { get; protected set; }
+        private string suffix = "";
         
         public virtual string details() {
             return "";
@@ -121,18 +159,21 @@ namespace Gmic {
             return property;
         }
         
-        public string normalized_name() {
-            return name.down()
-                .replace(" ", "_")
-                .replace("-", "_")
-                .replace("(", "")
-                .replace(")", "")
-                .replace("%", "percent")
-                .replace(".", "");
+        public string safe_name {
+            owned get {
+                return name
+                    .replace("\"", "'")
+                    .replace("\\′", "'")
+                    .replace("\\″", "'");
+            }
         }
         
-        public GmicParameter append_value_prefix(int current_value) {
-            this.name += "%d".printf(current_value);
+        public string normalized_name() {
+            return "%s%s".printf(normalize(name).down(), suffix);
+        }
+        
+        public GmicParameter append_value_suffix(int current_value) {
+            this.suffix = "%d".printf(current_value);
             return this;
         }
     }
@@ -184,7 +225,7 @@ namespace Gmic {
     value_range ({{min_value}}, {{max_value}})
             """
             .replace("{{name_normalized}}", normalized_name())
-            .replace("{{name}}", name)
+            .replace("{{name}}", safe_name)
             .replace("{{default_value}}", "%.2f".printf(def))
             .replace("{{min_value}}", "%.2f".printf(min))
             .replace("{{max_value}}", "%.2f".printf(max));
@@ -258,25 +299,13 @@ namespace Gmic {
     
         public string enum_type_name  {
             owned get {
-                return name
-                    .replace(" ", "") 
-                    .replace("(", "")
-                    .replace(")", "")
-                    .replace("[", "")
-                    .replace("]", "") 
-                    + "Type";
+                return normalize(name) + "Type";
             }
         }
         
         public string enum_type  {
             owned get {
-                return name.down()
-                    .replace(" ", "") 
-                    .replace("(", "")
-                    .replace(")", "")
-                    .replace("[", "")
-                    .replace("]", "") 
-                    + "_type";
+                return normalize(name).down() + "_type";
             }
         }
         
@@ -285,17 +314,9 @@ namespace Gmic {
                 var result = new string[options.length];
                 int i = 0;
                 foreach (var option in options) {
-                    result[i++] = "(%s, %s, N_(%s))".printf(
-                        enum_value(option),
-                        option.down()
-                            .replace("[", "")
-                            .replace("]", "")
-                            .replace(".", "")
-                            .replace(" ", "-")
-                            .replace("(", "")
-                            .replace(")", ")")
-                            .replace("&", "and")
-                        ,
+                    result[i++] = "(%s, \"%s\", N_(%s))".printf(
+                        enum_value(i).up(),
+                        enum_value(i).down(),
                         option
                     );
                 }
@@ -308,34 +329,36 @@ namespace Gmic {
                 var result = new string[options.length];
                 int i = 0;
                 foreach (var option in options) {
-                        result[i++] = "%s%s".printf(enum_value(option), (i == options.length - 1) ? "" : ",");
+                        result[i++] = "%s%s".printf(enum_value(i), (i == options.length - 1) ? "" : ",");
                 }
                 return result;
             }
         }
         
-        private string enum_value(string option) {
-            return name.up()
-                .replace(" ", "")
-                .replace("(", "")
-                .replace(")", "")
-                + "_" + 
-                option
-                    .replace("\"", "")
-                    .replace(" ", "_")
-                    .replace("-", "_")
-                    .replace("(", "")
-                    .replace(")", "")
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("&", "AND")
-                    .up();
+        private string enum_value(int option_index) {
+            return normalize(name) + "_%d".printf(option_index);
+                
         }
         
         public GmicChoiceParam(string name, int def_index, string[] options) {
             this.name = name;
             this.def_index = def_index;
-            this.options = options;
+            this.options = normalize_options(options);
+        }
+        
+        private string[] normalize_options(string[] options) {
+            var normalized = new string[options.length];
+            for (int i = 0; i < options.length; i++) {
+                var o = options[i];
+                if (!o.has_prefix("\"")) {
+                    o = "\"" + o;
+                }
+                if (!o.has_suffix("\"")) {
+                    o = o + "\"";
+                }
+                normalized[i] = o;
+            }
+            return normalized;
         }
         
         public override string details() {
@@ -411,6 +434,7 @@ namespace Gmic {
         
         public string[] gegl_enums {
             owned get {
+                var unique_enums = new Gee.ArrayList<string>();
                 var result = new string[parameters.length()];
                 
                 var template = new Template.Template(new Template.TemplateLocator());
@@ -430,9 +454,14 @@ namespace Gmic {
                         continue;
                     }
                     
+                    if (unique_enums.contains(choice_param.enum_type)) {
+                        continue;
+                    }
+                    
                     scope["choice"].assign_object(choice_param);
                     try {
                         result[index++] = template.expand_string(scope);
+                        unique_enums.add(choice_param.enum_type);
                     } catch (Error e) {
                         warning(e.message);
                     }
@@ -465,6 +494,12 @@ namespace Gmic {
                     result[i++] = "%s%s".printf(wrapped_property, (i == parameters.length() -1) ? "" : ",");
                 }
                 return result;
+            }
+        }
+        
+        public bool has_parameters {
+            get {
+                return parameters.length() > 0;
             }
         }
         
@@ -577,6 +612,7 @@ namespace Gmic {
         
             if (body.contains("}")) {
                 var cleaned = body.replace("}", "").replace(",", "").strip();
+                
                 if (cleaned.length > 0)
                     choice_items += cleaned;
         
@@ -626,16 +662,18 @@ namespace Gmic {
         }
         
         public void add_parameter(GmicParameter parameter) {
-            if (parameter_name_accumulation.has_key(parameter.name)) {
-                int current_value = parameter_name_accumulation.get(parameter.name);
-                parameter.append_value_prefix(++current_value);
-                parameter_name_accumulation.set(parameter.name, current_value);
+            var normalized_name = normalize(parameter.name).down();
+            
+            if (parameter_name_accumulation.has_key(normalized_name)) {
+                int current_value = parameter_name_accumulation.get(normalized_name);
+                parameter.append_value_suffix(++current_value);
+                parameter_name_accumulation.set(normalized_name, current_value);
                 parameters.append(parameter);
                 
                 return;
             }
             
-            parameter_name_accumulation.set(parameter.name, 1);
+            parameter_name_accumulation.set(normalized_name, 1);
             parameters.append(parameter);
         }
         
@@ -656,6 +694,7 @@ namespace Gmic {
         }
         
         public List<GmicFilter> parse_gmic_stdlib(string stdlib) {
+            var unique = new Gee.ArrayList<string>();
             var filters = new List<GmicFilter>();
             var lines = stdlib.split("\n");
 
@@ -683,6 +722,10 @@ namespace Gmic {
 
                 var filter = parse_header_line(trimmed);
                 if (filter != null) {
+                    if (unique.contains(filter.command)) {
+                        continue;
+                    }
+                    
                     if (current_filter != null) {
                         current_filter = null;
                     }
@@ -693,6 +736,7 @@ namespace Gmic {
                     
                     current_filter = filter;
                     filters.append(filter);
+                    unique.add(filter.command);
                 }
             }
             
@@ -827,11 +871,14 @@ namespace Gmic {
                     return new GmicTextParam(name, "");
             
                 var inside = rhs.substring(start, end - start).strip();
+                if (inside.has_prefix("\"")) {
+                    return new GmicTextParam(name, inside);
+                }
+                
+                var parts = inside.split("\"");
+                var text = "\"%s\"".printf(parts[1].strip());
             
-                var parts = inside.split(",");
-                var last = parts[parts.length - 1].strip();
-            
-                return new GmicTextParam(name, last);
+                return new GmicTextParam(name, text);
             }
         
             return null;

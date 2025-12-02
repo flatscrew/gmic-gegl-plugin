@@ -1,9 +1,10 @@
 generator_sources = [
   gmic_wrapper,
+  gmic_filter,
   'operations_meson_build_generator.vala',
   'operation_generator.vala',
-  'generator.vala',
-  gmic_filter
+  'blacklist.vala',
+  'generator.vala'
 ]
 
 executable(

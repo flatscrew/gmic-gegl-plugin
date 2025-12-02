@@ -72,6 +72,7 @@ char *gegl_color_to_rgba(GeglColor *color, bool include_alpha)
 }
 
 static char* properties_string(GeglProperties *props) {
+    {{if filter.has_parameters}}
     char *out = NULL;
     asprintf(&out, "{{filter.gegl_parameters_format}}", 
       {{for param_name in filter.gegl_parameters_names}}
@@ -79,6 +80,9 @@ static char* properties_string(GeglProperties *props) {
       {{end}}
     );
     return out;
+    {{else}}
+    return "";
+    {{end}}
 }
 
 static gboolean

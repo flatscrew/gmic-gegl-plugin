@@ -13,6 +13,10 @@ public class OperationsMesonBuildGenerator {
         var commands = new string[gmic_operations.length()];
         int i = 0;
         foreach (var op in gmic_operations) {
+            if (Blacklist.instance.is_blacklisted(op.command)) {
+                continue;
+            }
+            
             commands[i++] = op.command;
         }
 

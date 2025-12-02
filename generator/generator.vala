@@ -58,7 +58,7 @@ class Main : Object {
     };
     
     public static int main(string[] args) {
-        var context = new OptionContext("- G'MIC stdlib parser");
+        var context = new OptionContext("- G'MIC -> GEGL generator");
         context.set_help_enabled(true);
         context.add_main_entries(options, null);
     
@@ -80,6 +80,13 @@ class Main : Object {
             error("ERROR: Cannot create output directory %s\n", output_dir);
         }
         
+        var blacklist = Blacklist.instance;
+        // not yet supported....
+        blacklist.add(
+            "fx_color_presets", 
+            "fx_simulate_film"
+        );
+        
         var stdlib = gmic_decompress_stdlib();
         var parser = new Gmic.GmicFilterParser(
             Gmic.GmicFilterPredicate.any().and(Gmic.GmicFilterPredicate.is_any_of(include_commands))
@@ -95,6 +102,11 @@ class Main : Object {
         
         var generator = new OperationGenerator(template_locator);
         foreach (var operation in gmic_operations) {
+            if (blacklist.is_blacklisted(operation.command)) {
+                warning("[%s] is blacklisted! skipping...", operation.name);
+                continue;
+            }
+            
             message("Creating directory for: %s", operation.command);
             
             var op_dir = dest_dir.get_child(operation.command);
