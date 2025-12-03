@@ -1,4 +1,4 @@
-project('gmic-test', ['vala', 'cpp'])
+project('gmic-test', ['vala', 'c', 'cpp'])
 
 dependencies = [
   dependency('glib-2.0'),
@@ -18,6 +18,10 @@ main_sources = [
 ]
 
 inc = include_directories('.')
+
+if get_option('with_aux')
+  add_project_arguments(['-DWITH_AUX'], language: 'c')
+endif
 
 executable(
   'gmic-parser',

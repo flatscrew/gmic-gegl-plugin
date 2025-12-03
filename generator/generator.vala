@@ -114,7 +114,7 @@ class Main : Object {
                 error("ERROR: Cannot create output directory %s\n", output_dir);
             }
             
-            generator.generate_c_file(operation, op_dir.get_child("%s.c".printf(operation.command)));
+            generator.generate_c_file(operation, op_dir.get_child("gmic_%s.c".printf(operation.command)));
             generator.generate_build_file(operation, op_dir.get_child("meson.build"));
         }
         

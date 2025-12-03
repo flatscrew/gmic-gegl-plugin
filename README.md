@@ -70,7 +70,24 @@ Finally, rebuild to compile all generated plugins:
 ninja -C build
 ```
 
-⚠️ This generator mode is highly experimental, intended for development and testing only.
+### Optional: disable the `aux` input pad for GEGL operations
+
+By default, the build enables an additional **aux** input pad on all generated
+GEGL operations. Some hosts (notably GIMP 3.0.4) require the aux pad to be disabled for
+non-destructive editing to work correctly (big thanks to @LinuxBeaver for extensive
+plugin testing and reporting this issue!).
+
+You can turn it off by configuring Meson with:
+
+```bash
+meson setup -Dwith_aux=false build
+```
+
+With `with_aux=false`, all generated operations are built without the aux
+input pad and integrate properly in GIMP 3.0.4’s non-destructive pipeline.
+
+> [!WARNING]
+> This generator mode is in vearly early stage of development, please report any unexpected behavior.
 
 ## 🧪 Running the plugin from terminal (GEGL CLI)
 

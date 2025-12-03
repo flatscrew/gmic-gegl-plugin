@@ -24,10 +24,8 @@
  #include <stdio.h>
  
  void gmic_render_error(GeglBuffer    *input,
-                   GeglBuffer    *output,
-                   char          *error
-                   
- )
+                        GeglBuffer    *output,
+                        char          *error)
  {
     const GeglRectangle *ext = gegl_buffer_get_extent(input);
     const Babl *error_fmt = babl_format("R'G'B'A float");

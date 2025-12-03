@@ -1,7 +1,7 @@
 shared_library('gmic-{{filter.command}}',
   sources: [
     gmic_runner,
-    '{{filter.command}}.c',
+    'gmic_{{filter.command}}.c',
   ],
   dependencies: [gegl],
   link_args: [

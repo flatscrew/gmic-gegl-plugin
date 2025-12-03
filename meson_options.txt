@@ -1,1 +1,2 @@
 option('with_generator', type: 'boolean', value: false)
+option('with_aux', type: 'boolean', value: true)

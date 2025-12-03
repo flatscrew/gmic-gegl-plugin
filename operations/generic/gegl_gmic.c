@@ -33,7 +33,12 @@ property_string(command, _("G'MIC Command"), "")
 
 #else
 
+#ifdef WITH_AUX
 #define GEGL_OP_COMPOSER
+#else
+#define GEGL_OP_FILTER
+#endif
+
 #define GEGL_OP_NAME     geglgmic
 #define GEGL_OP_C_SOURCE gegl_gmic.c
 
@@ -45,14 +50,19 @@ static void prepare (GeglOperation *operation)
 {
     const Babl *fmt = babl_format("R'G'B'A float");
     gegl_operation_set_format(operation, "input",  fmt);
-    gegl_operation_set_format(operation, "aux",  fmt);
     gegl_operation_set_format(operation, "output", fmt);
+    
+#ifdef WITH_AUX
+    gegl_operation_set_format(operation, "aux",  fmt);
+#endif
 }
 
 static gboolean
 process (GeglOperation *operation,
          GeglBuffer    *input,
+#ifdef WITH_AUX
          GeglBuffer    *aux,
+#endif
          GeglBuffer    *output,
          const GeglRectangle *roi,
          gint level)
@@ -63,7 +73,18 @@ process (GeglOperation *operation,
         char full_cmd[2048];
         snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", props->command);
         
-        return gmic_process_buffer(input, aux, output, roi, level, full_cmd);
+        return gmic_process_buffer(
+            input, 
+#ifdef WITH_AUX
+            aux, 
+#else
+            NULL,
+#endif
+            output, 
+            roi, 
+            level, 
+            full_cmd
+        );
     }
     
     return FALSE;
@@ -94,11 +115,19 @@ static void
 gegl_op_class_init (GeglOpClass *klass)
 {
   GeglOperationClass       *operation_class;
+#ifdef WITH_AUX
   GeglOperationComposerClass *filter_class;
-
+#else
+  GeglOperationFilterClass *filter_class;
+#endif
+  
   operation_class = GEGL_OPERATION_CLASS (klass);
+#ifdef WITH_AUX
   filter_class    = GEGL_OPERATION_COMPOSER_CLASS (klass);
-
+#else
+  filter_class    = GEGL_OPERATION_FILTER_CLASS (klass);
+#endif
+  
   filter_class->process = process;
   operation_class->prepare = prepare;
   operation_class->threaded = FALSE;
