@@ -549,10 +549,23 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
     public class GmicFilter : Object {
         public string name { private set; public get; }
         public string command { private set; public get; }
+        public string? _description;
         public GmicCategory? category;
         
         public List<GmicParameter> parameters = new List<GmicParameter>();
         private Gee.Map<string, int> parameter_name_accumulation = new Gee.HashMap<string, int>();
+        
+        public bool has_description {
+            get {
+                return _description != null;
+            }
+        }
+        
+        public string description {
+            owned get {
+                return _description;
+            }
+        }
         
         public string normalized_category_name {
             owned get {
@@ -942,18 +955,48 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
             if (current_filter.try_begin_choice(body)) return;
             if (current_filter.try_feed_choice(body)) return;
             if (current_filter.try_end_choice(body)) return;
+            
+            var eq = body.index_of("=");
+            if (eq < 0) return;
         
-            var param = parse_singleline_param(body);
+            var name = body.substring(0, eq).strip();
+            var contents = body.substring(eq + 1).strip();
+            
+            if ("_" == name) {
+                parse_meta_param(contents);
+                return;
+            }
+            
+            var param = parse_singleline_param(name, contents);
             if (param != null)
                 current_filter.add_parameter(param);
         }
         
-        private GmicParameter? parse_singleline_param(string body) {
-            var eq = body.index_of("=");
-            if (eq < 0) return null;
+        private void parse_meta_param(string contents) {
+            var param_contents = contents;
+            param_contents.replace("\\n", "");
+            
+            if (param_contents.has_prefix("note(")) {
+                if (param_contents.contains("Description")) {
+                    var needle = "<span color=\"#EE5500\"><b>Description:</b></span>";
+                    
+                    var first = param_contents.index_of(needle, 0);
+                    if (first < 0) {
+                        return;
+                    }   
+                    var last = param_contents.last_index_of(".", first + needle.length);
+                    
+                    this.current_filter._description =
+                        param_contents
+                            .substring(first + needle.length, last - (first + needle.length))
+                            .replace("\"", "'")
+                            .strip();
+                }
+            }
+        }
         
-            var name = body.substring(0, eq).strip();
-            var rhs  = body.substring(eq + 1).strip();
+        private GmicParameter? parse_singleline_param(string name, string contents) {
+            var rhs = contents;
         
             if (rhs.has_prefix("~") || rhs.has_prefix("_")) {
                 rhs = rhs.substring(1).strip();

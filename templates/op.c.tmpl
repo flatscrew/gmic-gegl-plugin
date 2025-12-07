@@ -171,6 +171,9 @@ gegl_op_class_init (GeglOpClass *klass)
     "title",       _("{{filter.name}}"),
     "categories",  "{{filter.normalized_category_name}}",
     "reference-hash", "gmic_{{filter.command}}",
+{{if filter.has_description }}
+    "description", _("{{filter.description}}"),
+{{end}}
     "gimp:menu-path", "<Image>/Filters/G'MIC GEGL/",
     "gimp:menu-label", _("{{filter.name}}"),
     NULL);
