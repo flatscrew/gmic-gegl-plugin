@@ -668,9 +668,9 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
             }
             
             string rhs = body.substring(eq + 1).strip();
-            if (rhs.has_prefix("~")) {
+            if (rhs.has_prefix("~") || rhs.has_prefix("_")) {
                 rhs = rhs.substring(1).strip();
-            }    
+            }
         
             if (!rhs.has_prefix("choice(") && !rhs.has_prefix("choice{"))
                 return false;
