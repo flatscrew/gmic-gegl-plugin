@@ -9,7 +9,7 @@ including standalone `gegl` CLI or other applications embedding GEGL.
 
 ## 📸 Example — G’MIC + GEGL in action in RasterFlow
 
-![kapibara](kapibara-gmic.png)
+![Kapibara](kapibara-gmic.png)
 
 ## 📦 Dependencies
 

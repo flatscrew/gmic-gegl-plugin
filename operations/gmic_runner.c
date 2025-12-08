@@ -118,55 +118,105 @@
     int out_w = w, out_h = h, out_spectrum = channels;
 
     if (command && command[0]) {
-        
         printf("running g'mic command: %s\n", command);
 
-        gmic_interface_image img;
-        memset(&img, 0, sizeof(img));
-
-        strcpy(img.name, "input");
-
-        img.data          = rgba_in;
-        img.width         = w;
-        img.height        = h;
-        img.depth         = 1;
-        img.spectrum      = channels;
-        img.is_interleaved = true;
-        img.format        = E_FORMAT_FLOAT;
-
+        gmic_interface_image imgs[2];
         unsigned int count = 1;
+
+        memset(imgs, 0, sizeof(imgs));
+
+        strcpy(imgs[0].name, "input");
+        imgs[0].data           = rgba_in;
+        imgs[0].width          = w;
+        imgs[0].height         = h;
+        imgs[0].depth          = 1;
+        imgs[0].spectrum       = channels;
+        imgs[0].is_interleaved = true;
+        imgs[0].format         = E_FORMAT_FLOAT;
+
+        float *aux_buf = NULL;
+
+        if (aux) {
+            printf("using aux input...\n");
+            
+            GeglRectangle aux_ext = *gegl_buffer_get_extent(aux);
+            int aw = aux_ext.width;
+            int ah = aux_ext.height;
+            int ach = babl_format_get_n_components(gegl_buffer_get_format(aux));
+
+            const Babl *aux_fmt;
+            if (ach == 1) aux_fmt = babl_format("Y' float");
+            else if (ach == 2) aux_fmt = babl_format("Y'A float");
+            else if (ach == 3) aux_fmt = babl_format("R'G'B' float");
+            else aux_fmt = babl_format("R'G'B'A float");
+
+            aux_buf = g_malloc(aw * ah * ach * sizeof(float));
+
+            gegl_buffer_get(aux, &aux_ext, 1.0f, aux_fmt,
+                            aux_buf, aw * ach * sizeof(float),
+                            GEGL_ABYSS_NONE);
+
+            for (int i = 0; i < aw * ah * ach; i++)
+                aux_buf[i] *= 255.0f;
+
+            strcpy(imgs[1].name, "aux");
+            imgs[1].data           = aux_buf;
+            imgs[1].width          = aw;
+            imgs[1].height         = ah;
+            imgs[1].depth          = 1;
+            imgs[1].spectrum       = ach;
+            imgs[1].is_interleaved = true;
+            imgs[1].format         = E_FORMAT_FLOAT;
+
+            count = 2;
+        }
 
         char error_buffer[4096];
         error_buffer[0] = '\0';
-        
+
         gmic_interface_options opt;
         memset(&opt, 0, sizeof(opt));
         opt.interleave_output     = true;
         opt.output_format         = E_FORMAT_FLOAT;
         opt.ignore_stdlib         = false;
         opt.no_inplace_processing = true;
-        opt.error_message_buffer = error_buffer;
+        opt.error_message_buffer  = error_buffer;
 
         char full_cmd[2048];
         snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", command);
-        gmic_call(full_cmd, &count, &img, &opt);
-        
-        if (error_buffer[0] != '\0')
-        {
+
+        gmic_call(full_cmd, &count, imgs, &opt);
+
+        if (error_buffer[0] != '\0') {
             gmic_render_error(input, output, error_buffer);
+            if (aux_buf) g_free(aux_buf);
             g_free(rgba_in);
             return TRUE;
         }
+
+        rgba_out     = imgs[0].data;
+        out_w        = imgs[0].width;
+        out_h        = imgs[0].height;
+        out_spectrum = imgs[0].spectrum;
         
-        rgba_out     = (float*)img.data;
-        out_w        = img.width;
-        out_h        = img.height;
-        out_spectrum = img.spectrum;
+        GeglRectangle out_ext = {0, 0, out_w, out_h};
+        gegl_buffer_set_extent(output, &out_ext);
+
+        if (aux_buf) g_free(aux_buf);
     }
 
     float *line = g_malloc(roi->width * 4 * sizeof(float));
     const float inv255 = 1.0f / 255.0f;
 
+    printf("GMIC RESULT SIZE: %dx%d (spectrum=%d)\n", out_w, out_h, out_spectrum);
+
+    GeglRectangle out_ext = *gegl_buffer_get_extent(output);
+    printf("GEGL OUTPUT EXTENT BEFORE = x:%d y:%d w:%d h:%d\n",
+       out_ext.x, out_ext.y, out_ext.width, out_ext.height);
+    
+    printf("[PROCESS] ROI = x:%d y:%d w:%d h:%d\n",
+        roi->x, roi->y, roi->width, roi->height);
+       
     for (int yy = 0; yy < roi->height; yy++) {
 
         int sy = roi->y + yy;
@@ -197,7 +247,8 @@
             line[4*x+2] = b * inv255;
             line[4*x+3] = a * inv255;
         }
-
+        
+        
         GeglRectangle scan = { roi->x, sy, roi->width, 1 };
         gegl_buffer_set(output, &scan, 0, output_fmt,
                         line, roi->width * 4 * sizeof(float));

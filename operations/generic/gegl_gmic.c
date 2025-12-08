@@ -94,9 +94,16 @@ static GeglRectangle
 get_cached_region (GeglOperation *operation,
                    const GeglRectangle *roi)
 {
-    GeglRectangle full =
-        *gegl_operation_source_get_bounding_box (operation, "input");
-    return full;
+    printf("GET CACHED REGION\n");
+    
+    const GeglRectangle *src =
+        gegl_operation_source_get_bounding_box(operation, "input");
+
+    if (!src) {
+        return *roi;
+    }
+
+    return *src;
 }
 
 static GeglRectangle
@@ -104,12 +111,55 @@ get_required_for_output (GeglOperation       *operation,
                          const gchar         *input_pad,
                          const GeglRectangle *roi)
 {
-  GeglRectangle result = *gegl_operation_source_get_bounding_box (operation, "input");
-  if (gegl_rectangle_is_infinite_plane (&result))
-    return *roi;
+    printf("GET REQUIRED FOR OUTPUT\n");
+    
+    
+    const GeglRectangle *src =
+        gegl_operation_source_get_bounding_box(operation, "input");
 
-  return result;
+    if (!src) {
+        return *roi;
+    }
+
+    GeglRectangle result = *src;
+    if (gegl_rectangle_is_infinite_plane(&result)) {
+        return *roi;
+    }
+
+    return result;
 }
+
+static GeglRectangle
+get_bounding_box (GeglOperation *op)
+{
+    printf("GET BOUNDING BOX\n");
+    
+    const GeglRectangle *src =
+        gegl_operation_source_get_bounding_box(op, "input");
+    return src ? *src : gegl_rectangle_infinite_plane();
+}
+
+
+
+// static GeglRectangle
+// get_bounding_box (GeglOperation *op)
+// {
+//     const GeglRectangle *src =
+//         gegl_operation_source_get_bounding_box(op, "input");
+
+//     if (!src)
+//         return gegl_rectangle_infinite_plane();
+
+//     GeglRectangle r;
+//     r.x = 0;
+//     r.y = 0;
+//     r.width  = src->width  * 2;
+//     r.height = src->height * 2;
+
+//     printf("GET BOUNDING BOX → %dx%d\n", r.width, r.height);
+
+//     return r;
+// }
 
 static void
 gegl_op_class_init (GeglOpClass *klass)
@@ -133,7 +183,8 @@ gegl_op_class_init (GeglOpClass *klass)
   operation_class->threaded = FALSE;
   operation_class->get_cached_region = get_cached_region;
   operation_class->get_required_for_output = get_required_for_output;
-  
+  operation_class->get_bounding_box = get_bounding_box;
+    
   gegl_operation_class_set_keys (operation_class,
     "name",        "gmic:command",
     "title",       _("Run G'MIC command"),
