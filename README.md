@@ -7,6 +7,10 @@ no tiling artifacts, and full **RGBA float** support.
 Originally implemented for **RasterFlow**, but it works in **any GEGL-based pipeline**,  
 including standalone `gegl` CLI or other applications embedding GEGL.
 
+
+> [!NOTE]
+> Please see the G'MIC - GEGL generator status [here](STATUS.MD)
+
 ## 📸 Example — G’MIC + GEGL in action in RasterFlow
 
 ![Kapibara](kapibara-gmic.png)
