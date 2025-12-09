@@ -28,8 +28,19 @@
 
 #ifdef GEGL_PROPERTIES
 
+#ifdef WITH_AUX
+enum_start(gegl_gmic_aux_mode)
+    enum_value(GEGL_GMIC_AUX_MODE_INPUT_AS_OUTPUT,   "input-as-output",   N_("Input ROI as Output ROI"))
+    enum_value(GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT,     "aux-as-output",     N_("As Output ROI"))
+    enum_value(GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI, "aux-as-output-roi", N_("As Output ROI only"))
+enum_end(GeglGmicAuxMode)
+
+property_enum (aux_mode, _("Aux Mode"), GeglGmicAuxMode, gegl_gmic_aux_mode, GEGL_GMIC_AUX_MODE_INPUT_AS_OUTPUT)
+  description(_("Selects which buffer defines the output size and how the AUX pad participates in the operation."))
+#endif
+
 property_string(command, _("G'MIC Command"), "")
-    description(_("G'MIC command to run on the input buffer"))
+  description(_("G'MIC command to run on the input buffer"))
 
 #else
 
@@ -69,41 +80,32 @@ process (GeglOperation *operation,
 {
     GeglProperties *props = GEGL_PROPERTIES(operation);
 
-    if (props->command && props->command[0]) {
-        char full_cmd[2048];
-        snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", props->command);
-        
-        return gmic_process_buffer(
-            input, 
+    if (!(props->command && props->command[0]))
+        return FALSE;
+
+    char full_cmd[2048];
+    snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", props->command);
+
 #ifdef WITH_AUX
-            aux, 
-#else
-            NULL,
+    GeglBuffer *aux_to_use = NULL;
+    if (props->aux_mode == GEGL_GMIC_AUX_MODE_INPUT_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT)
+        aux_to_use = aux;
+    else
+        aux_to_use = NULL;
 #endif
-            output, 
-            roi, 
-            level, 
-            full_cmd
-        );
-    }
-    
-    return FALSE;
-}
 
-static GeglRectangle
-get_cached_region (GeglOperation *operation,
-                   const GeglRectangle *roi)
-{
-    printf("GET CACHED REGION\n");
-    
-    const GeglRectangle *src =
-        gegl_operation_source_get_bounding_box(operation, "input");
-
-    if (!src) {
-        return *roi;
-    }
-
-    return *src;
+    return gmic_process_buffer(
+        input,
+#ifdef WITH_AUX
+        aux_to_use,
+#else
+        NULL,
+#endif
+        output,
+        roi,
+        level,
+        full_cmd
+    );
 }
 
 static GeglRectangle
@@ -111,55 +113,37 @@ get_required_for_output (GeglOperation       *operation,
                          const gchar         *input_pad,
                          const GeglRectangle *roi)
 {
-    printf("GET REQUIRED FOR OUTPUT\n");
-    
-    
-    const GeglRectangle *src =
-        gegl_operation_source_get_bounding_box(operation, "input");
+  const GeglRectangle *src = NULL;
+  
+  #ifdef WITH_AUX
+  GeglProperties *props = GEGL_PROPERTIES(operation);
+  if (props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI)
+      src = gegl_operation_source_get_bounding_box(operation, "aux");
+  else
+#endif
+    src = gegl_operation_source_get_bounding_box(operation, "input");
 
-    if (!src) {
-        return *roi;
-    }
+  if (!src || gegl_rectangle_is_infinite_plane((GeglRectangle*)src))
+      return *roi;
 
-    GeglRectangle result = *src;
-    if (gegl_rectangle_is_infinite_plane(&result)) {
-        return *roi;
-    }
-
-    return result;
+  return *src;
 }
 
 static GeglRectangle
 get_bounding_box (GeglOperation *op)
 {
-    printf("GET BOUNDING BOX\n");
-    
-    const GeglRectangle *src =
-        gegl_operation_source_get_bounding_box(op, "input");
-    return src ? *src : gegl_rectangle_infinite_plane();
+  const GeglRectangle *src = NULL;
+  
+#ifdef WITH_AUX
+  GeglProperties *props = GEGL_PROPERTIES(op);
+  if (props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI)
+      src = gegl_operation_source_get_bounding_box(op, "aux");
+  else
+#endif
+  src = gegl_operation_source_get_bounding_box(op, "input");
+
+  return src ? *src : gegl_rectangle_infinite_plane();
 }
-
-
-
-// static GeglRectangle
-// get_bounding_box (GeglOperation *op)
-// {
-//     const GeglRectangle *src =
-//         gegl_operation_source_get_bounding_box(op, "input");
-
-//     if (!src)
-//         return gegl_rectangle_infinite_plane();
-
-//     GeglRectangle r;
-//     r.x = 0;
-//     r.y = 0;
-//     r.width  = src->width  * 2;
-//     r.height = src->height * 2;
-
-//     printf("GET BOUNDING BOX → %dx%d\n", r.width, r.height);
-
-//     return r;
-// }
 
 static void
 gegl_op_class_init (GeglOpClass *klass)
@@ -181,10 +165,10 @@ gegl_op_class_init (GeglOpClass *klass)
   filter_class->process = process;
   operation_class->prepare = prepare;
   operation_class->threaded = FALSE;
-  operation_class->get_cached_region = get_cached_region;
+  operation_class->no_cache = TRUE;
   operation_class->get_required_for_output = get_required_for_output;
-  operation_class->get_bounding_box = get_bounding_box;
-    
+  operation_class->get_bounding_box = get_bounding_box; 
+  
   gegl_operation_class_set_keys (operation_class,
     "name",        "gmic:command",
     "title",       _("Run G'MIC command"),

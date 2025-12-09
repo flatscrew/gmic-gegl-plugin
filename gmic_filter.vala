@@ -549,6 +549,11 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
     public class GmicFilter : Object {
         public string name { private set; public get; }
         public string command { private set; public get; }
+        public string command_pascalized {
+            owned get {
+                return pascalize(command);
+            }
+        }
         public string? _description;
         public GmicCategory? category;
         

@@ -22,6 +22,7 @@
  #include <glib.h>
  #include <babl/babl.h>
  #include <stdio.h>
+
  
  void gmic_render_error(GeglBuffer    *input,
                         GeglBuffer    *output,
@@ -208,17 +209,7 @@
     float *line = g_malloc(roi->width * 4 * sizeof(float));
     const float inv255 = 1.0f / 255.0f;
 
-    printf("GMIC RESULT SIZE: %dx%d (spectrum=%d)\n", out_w, out_h, out_spectrum);
-
-    GeglRectangle out_ext = *gegl_buffer_get_extent(output);
-    printf("GEGL OUTPUT EXTENT BEFORE = x:%d y:%d w:%d h:%d\n",
-       out_ext.x, out_ext.y, out_ext.width, out_ext.height);
-    
-    printf("[PROCESS] ROI = x:%d y:%d w:%d h:%d\n",
-        roi->x, roi->y, roi->width, roi->height);
-       
     for (int yy = 0; yy < roi->height; yy++) {
-
         int sy = roi->y + yy;
         if (sy < 0 || sy >= out_h)
             continue;
@@ -247,7 +238,6 @@
             line[4*x+2] = b * inv255;
             line[4*x+3] = a * inv255;
         }
-        
         
         GeglRectangle scan = { roi->x, sy, roi->width, 1 };
         gegl_buffer_set(output, &scan, 0, output_fmt,
