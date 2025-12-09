@@ -25,6 +25,7 @@ class Main : Object {
     [CCode (array_length = false, array_null_terminated = true)]
 	private static string[]? include_commands = null;
     private static bool show_parameters = false;
+    private static bool just_command = false;
     
     private const OptionEntry[] options = {
         {
@@ -43,6 +44,13 @@ class Main : Object {
             OptionArg.NONE, 
             ref show_parameters, 
             "Show command parameters", null },
+        { 
+            "just_command", 
+            '\0', 
+            OptionFlags.NONE, 
+            OptionArg.NONE, 
+            ref just_command, 
+            "Show only command name", null },
         {
             "help",
             'h',
@@ -103,15 +111,19 @@ class Main : Object {
         );
         var gmic_operations = parser.parse_gmic_stdlib(stdlib);
         foreach (var operation in gmic_operations) {
-            stdout.printf("[%s] %s -> %s\n", operation.category?.name, operation.name, operation.command);
+            if (just_command) {
+                stdout.printf("%s\n", operation.command);
+            } else {
+                stdout.printf("[%s] %s -> %s\n", operation.category?.name, operation.name, operation.command);
             
-            if (operation._description != null) {
-                stdout.printf("%s\n", operation._description);
-            }
-            
-            if (show_parameters) {
-                operation.print_parameters();
-                stdout.printf("\n\n");
+                if (operation._description != null) {
+                    stdout.printf("%s\n", operation._description);
+                }
+                
+                if (show_parameters) {
+                    operation.print_parameters();
+                    stdout.printf("\n\n");
+                }
             }
         }
         

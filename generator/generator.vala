@@ -111,6 +111,7 @@ class Main : Object {
         var blacklist = Blacklist.instance;
         // not yet supported....
         blacklist.add(
+            "gui_download_all_data",
             "fx_color_presets", 
             "fx_simulate_film"
         );
