@@ -163,6 +163,23 @@ get_required_for_output (GeglOperation       *operation,
 }
 
 static GeglRectangle
+get_cached_region (GeglOperation *op,
+                   const GeglRectangle *roi)
+{
+  const GeglRectangle *src = NULL;
+  
+  #ifdef WITH_AUX
+    GeglProperties *props = GEGL_PROPERTIES(op);
+    if (props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI)
+        src = gegl_operation_source_get_bounding_box(op, "aux");
+    else
+  #endif
+    src = gegl_operation_source_get_bounding_box(op, "input");
+  
+    return src ? *src : gegl_rectangle_infinite_plane();
+}
+
+static GeglRectangle
 get_bounding_box (GeglOperation *op)
 {
   const GeglRectangle *src = NULL;
@@ -198,8 +215,8 @@ gegl_op_class_init (GeglOpClass *klass)
   filter_class->process = process;
   operation_class->prepare = prepare;
   operation_class->threaded = FALSE;
-  operation_class->no_cache = TRUE;
   operation_class->get_required_for_output = get_required_for_output;
+  operation_class->get_cached_region = get_cached_region;
   operation_class->get_bounding_box = get_bounding_box; 
   
   gegl_operation_class_set_keys (operation_class,
