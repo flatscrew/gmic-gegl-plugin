@@ -9,7 +9,7 @@ including standalone `gegl` CLI or other applications embedding GEGL.
 
 
 > [!NOTE]
-> Please see the G'MIC - GEGL generator status [here](STATUS.MD)
+> Please see the G'MIC - GEGL generator status [here](STATUS.md)
 
 ## 📸 Example — G’MIC + GEGL in action in RasterFlow
 
