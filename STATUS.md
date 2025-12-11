@@ -10,7 +10,7 @@ Each command is listed with a status indicator — **❔** Unverified, **✅ wor
 
 | G'MIC command  | Status | Notes |
 |----------------|--------|-------|
-| `fx_gmicky` | ❔ |  |
+| `fx_gmicky` | ✅ | Needs to use aux pad for ROI setup |
 | `fx_array_fade` | ✅ |  |
 | `fx_array_mirror` | ✅ |  |
 | `fx_array_color` | ✅ |  |
