@@ -10,7 +10,7 @@ Each command is listed with a status indicator — **❔** Unverified, **✅ wor
 
 | G'MIC command  | Status | Notes |
 |----------------|--------|-------|
-| `fx_gmicky` | ✅ | Needs to use aux pad for ROI setup |
+| `fx_gmicky` | ✅ |  |
 | `fx_array_fade` | ✅ |  |
 | `fx_array_mirror` | ✅ |  |
 | `fx_array_color` | ✅ |  |
@@ -273,17 +273,17 @@ Each command is listed with a status indicator — **❔** Unverified, **✅ wor
 | `fx_map_tones` | ✅ |  |
 | `fx_map_tones_fast` | ✅ |  |
 | `fx_droste` | ✅ |  |
-| `fx_frame_blur` | ✅ | Needs aux input with scaled size |
+| `fx_frame_blur` | ✅ |  |
 | `fx_frame_cube` | ✅ |  |
 | `fx_frame_fuzzy` | ✅ |  |
 | `fx_frame_mirror` | ✅ |  |
-| `fx_frame_painting` | ✅ | Needs aux input with scaled size |
-| `fx_frame_pattern` | ✅ | Needs aux input with scaled size |
-| `fx_frame` | ✅ | Needs aux input with scaled size |
+| `fx_frame_painting` | ✅ | |
+| `fx_frame_pattern` | ✅ | |
+| `fx_frame` | ✅ | |
 | `fx_frame_round` | ✅ |  |
-| `fx_frame_smooth` | ✅ | Needs aux input with scaled size |
+| `fx_frame_smooth` | ✅ | |
 | `fx_old_photo` | ✅ |  |
-| `fx_polaroid` | ✅ | Needs aux input with scaled size |
+| `fx_polaroid` | ✅ | |
 | `fx_tunnel` | ✅ |  |
 | `fx_vignette` | ✅ |  |
 | `fx_bandpass` | ✅ |  |
@@ -404,7 +404,7 @@ Each command is listed with a status indicator — **❔** Unverified, **✅ wor
 | `fx_circle_art` | ✅ |  |
 | `fx_equation_parametric` | ✅ |  |
 | `fx_equation_plot` | ❌ |  |
-| `fx_generate_random_portrait` | ✅ | Needs to use aux to setup output ROI |
+| `fx_generate_random_portrait` | ✅ | |
 | `fx_corner_gradient` | ✅ |  |
 | `fx_custom_gradient` | ✅ |  |
 | `fx_gradient_from_curve` | ❌ |  |

@@ -22,7 +22,7 @@
  #include <glib.h>
  #include <babl/babl.h>
  #include <stdio.h>
-
+ #include <stdbool.h>
  
  void gmic_render_error(GeglBuffer    *input,
                         GeglBuffer    *output,
@@ -82,6 +82,7 @@
                               GeglBuffer    *aux,
                               GeglBuffer    *output,
                               const GeglRectangle *roi,
+                              bool fit_gmic_output,
                               gint level,
                               char *command)
  {
@@ -119,8 +120,6 @@
     int out_w = w, out_h = h, out_spectrum = channels;
 
     if (command && command[0]) {
-        printf("running g'mic command: %s\n", command);
-
         gmic_interface_image imgs[2];
         unsigned int count = 1;
 
@@ -184,8 +183,17 @@
         opt.error_message_buffer  = error_buffer;
 
         char full_cmd[2048];
-        snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", command);
+        if (fit_gmic_output) {
+            snprintf(full_cmd, sizeof(full_cmd),
+                    "WH:=w,h %s gui_merge_layers r $WH,1,100%%,2",
+                    command);
+        } else {
+            snprintf(full_cmd, sizeof(full_cmd),
+                    "%s gui_merge_layers",
+                    command);
+        }
 
+        printf("running g'mic command: %s\n", full_cmd);
         gmic_call(full_cmd, &count, imgs, &opt);
 
         if (error_buffer[0] != '\0') {

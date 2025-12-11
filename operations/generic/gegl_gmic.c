@@ -25,6 +25,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <gmic_libc.h>
+#include <stdbool.h>
 
 #ifdef GEGL_PROPERTIES
 
@@ -39,6 +40,9 @@ property_enum (aux_mode, _("Aux Mode"), GeglGmicAuxMode, gegl_gmic_aux_mode, GEG
   description(_("Selects which buffer defines the output size and how the AUX pad participates in the operation."))
 #endif
 
+property_boolean (fit_gmic_output, _("Fit G'MIC output"), 0)
+  description(_("Forces G'MIC output rescaling to fit to Input ROI"))
+  
 property_string(command, _("G'MIC Command"), "")
   description(_("G'MIC command to run on the input buffer"))
 
@@ -83,9 +87,6 @@ process (GeglOperation *operation,
     if (!(props->command && props->command[0]))
         return FALSE;
 
-    char full_cmd[2048];
-    snprintf(full_cmd, sizeof(full_cmd), "%s gui_merge_layers", props->command);
-
 #ifdef WITH_AUX
     GeglBuffer *aux_to_use = NULL;
     if (props->aux_mode == GEGL_GMIC_AUX_MODE_INPUT_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT)
@@ -103,8 +104,9 @@ process (GeglOperation *operation,
 #endif
         output,
         roi,
+        props->fit_gmic_output,
         level,
-        full_cmd
+        props->command
     );
 }
 

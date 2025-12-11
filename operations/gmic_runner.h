@@ -17,10 +17,12 @@
 
 #pragma once
 #include <gegl.h>
+#include <stdbool.h>
 
 gboolean gmic_process_buffer(GeglBuffer    *input,
                              GeglBuffer    *aux,
                              GeglBuffer    *output,
                              const GeglRectangle *roi,
+                             bool use_input_roi,
                              gint level,
                              char *command);

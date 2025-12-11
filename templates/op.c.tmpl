@@ -37,6 +37,9 @@ property_enum (aux_mode, _("Aux Mode"), {{filter.command_pascalized}}GmicAuxMode
   description(_("Selects which buffer defines the output size and how the AUX pad participates in the operation."))
 #endif
 
+property_boolean (fit_gmic_output, _("Fit G'MIC output"), 0)
+  description(_("Forces G'MIC output rescaling to fit to Input ROI"))
+
 {{for gegl_enum in filter.gegl_enums}}
 {{gegl_enum}}
 
@@ -136,6 +139,7 @@ process (GeglOperation *operation,
 #endif
         output,
         roi,
+        props->fit_gmic_output,
         level,
         full_cmd
     );
