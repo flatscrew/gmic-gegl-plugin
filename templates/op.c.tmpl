@@ -121,7 +121,7 @@ process (GeglOperation *operation,
     GeglProperties *props = GEGL_PROPERTIES(operation);
     
     char full_cmd[2048];
-    snprintf(full_cmd, sizeof(full_cmd), "%s %s gui_merge_layers", "{{filter.command}}", properties_string(props));
+    snprintf(full_cmd, sizeof(full_cmd), "%s %s", "{{filter.command}}", properties_string(props));
 #ifdef WITH_AUX
     GeglBuffer *aux_to_use = NULL;
     if (props->aux_mode == GEGL_GMIC_AUX_MODE_INPUT_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT)

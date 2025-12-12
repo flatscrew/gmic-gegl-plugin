@@ -203,16 +203,11 @@ namespace Gmic {
         
         public GmicTextParam.from(string name, string param_definition) {
             var contents = "";
-            var start = "text(".length;
-            var end = param_definition.index_of_char(')', start);
-            if (end >= 0) {
-                var inside = param_definition.substring(start, end - start).strip();
-                if (inside.has_prefix("\"")) {
-                    contents = inside;
-                } else {
-                    var parts = inside.split("\"");
-                    contents = "\"%s\"".printf(parts[1].strip());
-                }
+            if (param_definition.has_prefix("\"")) {
+                contents = param_definition;
+            } else {
+                var parts = param_definition.split("\"");
+                contents = "\"%s\"".printf(parts[1].strip());
             }
             this(name, contents);
         }
@@ -245,9 +240,7 @@ namespace Gmic {
         public double max;
     
         public GmicFloatParam.from(string name, string param_definition) {
-            var inside = remove_prefix(param_definition, "float(");
-            inside = remove_suffix(inside, ")");
-            var p = inside.split(",");
+            var p = param_definition.split(",");
             
             this(name, double.parse(p[0]), double.parse(p[1]), double.parse(p[2]));
         }
@@ -285,9 +278,7 @@ namespace Gmic {
         public int max;
     
         public GmicIntParam.from(string name, string param_definition) {
-            var inside = remove_prefix(param_definition, "int(");
-            inside = remove_suffix(inside, ")");
-            var p = inside.split(",");
+            var p = param_definition.split(",");
             
             this(name, int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
         }
@@ -323,9 +314,7 @@ namespace Gmic {
         public bool def;
     
         public GmicBoolParam.from(string name, string param_definition) {
-            var inside = remove_prefix(param_definition, "bool(");
-            inside = remove_suffix(inside, ")");
-            this(name, inside == "1");   
+            this(name, param_definition == "1");   
         }
         
         public GmicBoolParam(string name, bool def) {
@@ -443,10 +432,7 @@ namespace Gmic {
         public string hex;
     
         public GmicColorParam.from(string name, string param_definition) {
-            var start = "color(".length;
-            var end = param_definition.index_of_char(')', start);
-            var inside = param_definition.substring(start, end - start).strip();
-            this(name, inside);
+            this(name, param_definition);
         }
         
         public GmicColorParam(string name, string hex) {
@@ -483,10 +469,7 @@ namespace Gmic {
         public int max;
     
         public GmicPointParam.from(string name, string param_definition) {
-            var inside = remove_prefix(param_definition, "point(");
-            inside = remove_suffix(inside, ")");
-            
-            var parts = inside.split(",");
+            var parts = param_definition.split(",");
             var px = parts.length > 0 ? int.parse(parts[0]) : 0;
             var py = parts.length > 1 ? int.parse(parts[1]) : 0;
             var pmin = parts.length > 2 ? double.parse(parts[2]) : 0.0;
@@ -1003,47 +986,43 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
         private GmicParameter? parse_singleline_param(string name, string contents) {
             var rhs = contents;
         
-            if (rhs.has_prefix("~") || rhs.has_prefix("_")) {
+            if (rhs.has_prefix("~") || rhs.has_prefix("_"))
                 rhs = rhs.substring(1).strip();
-            }
-            
-            if (rhs.has_prefix("float(")) {
-                return new GmicFloatParam.from(name, rhs);
-            }
         
-            if (rhs.has_prefix("int(")) {
-                return new GmicIntParam.from(name, rhs);
-            }
+            try {
+                var regex = new GLib.Regex(
+                    "^(float|int|bool|color|text|point)\\s*[\\(\\{](.*)[\\)\\}]$",
+                    GLib.RegexCompileFlags.CASELESS,
+                    0
+                );
         
-            if (rhs.has_prefix("bool(")) {
-                return new GmicBoolParam.from(name, rhs);
-            }
+                GLib.MatchInfo match;
+                if (!regex.match(rhs, 0, out match))
+                    return null;
         
-            if (rhs.has_prefix("color(")) {
-                return new GmicColorParam.from(name, rhs);
-            }
-            
-            if (rhs.has_prefix("text(")) {
-                return new GmicTextParam.from(name, rhs);
-            }
-            
-            if (rhs.has_prefix("point(")) {
-                return new GmicPointParam.from(name, rhs);
+                var type_name = match.fetch(1).down();
+                var body = match.fetch(2).strip();
+        
+                switch (type_name) {
+                case "float":
+                    return new GmicFloatParam.from(name, body);
+                case "int":
+                    return new GmicIntParam.from(name, body);
+                case "bool":
+                    return new GmicBoolParam.from(name, body);
+                case "color":
+                    return new GmicColorParam.from(name, body);
+                case "text":
+                    return new GmicTextParam.from(name, body);
+                case "point":
+                    return new GmicPointParam.from(name, body);
+                }
+            } catch (Error e) {
+                warning("Regex error: %s", e.message);
             }
         
             return null;
         }
-    }
-    
-    private static string remove_prefix(string s, string prefix) {
-        if (s.has_prefix(prefix))
-            return s.substring(prefix.length);
-        return s;
-    }
-    
-    private static string remove_suffix(string s, string suffix) {
-        if (s.has_suffix(suffix))
-            return s.slice(0, s.length - suffix.length);
-        return s;
+        
     }
 }

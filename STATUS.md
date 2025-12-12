@@ -296,7 +296,7 @@ Each command is listed with a status indicator — **❔** Unverified, **✅ wor
 | `fx_blend_fade` | ❌ |  |
 | `fx_blend_median` | ✅ |  |
 | `fx_blend_seamless` | ✅ |  |
-| `fx_blend` | ❌ |  |
+| `fx_blend` | ✅ |  |
 | `fx_split_colors` | ❔ |  |
 | `fx_fade_layers` | ❔ |  |
 | `append_tiles` | ❔ |  |
