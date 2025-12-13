@@ -72,7 +72,7 @@ Each command is listed with a status indicator — **❔** Unverified, **✅ wor
 | `fx_sketchbw` | ✅ |  |
 | `fx_smooth_abstract` | ✅ |  |
 | `fx_stringify` | ✅ |  |
-| `fx_stylize` | ❌ |  |
+| `fx_stylize` | ✅ |  |
 | `fx_vector_painting` | ✅ |  |
 | `warhol` | ✅ |  |
 | `fx_stencilbw` | ✅ |  |
