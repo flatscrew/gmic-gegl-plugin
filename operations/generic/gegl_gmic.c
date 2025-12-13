@@ -40,6 +40,9 @@ property_enum (aux_mode, _("Aux Mode"), GeglGmicAuxMode, gegl_gmic_aux_mode, GEG
   description(_("Selects which buffer defines the output size and how the AUX pad participates in the operation."))
 #endif
 
+property_boolean (merge_layers, _("Merge G'MIC output layers"), 1)
+  description(_("Tells G'MIC to apply <b>gui_merge_layers</b> on output images which effectively performs a merge into a single one"))
+
 property_boolean (fit_gmic_output, _("Fit G'MIC output"), 0)
   description(_("Forces G'MIC output rescaling to fit to Input ROI"))
   
@@ -105,6 +108,7 @@ process (GeglOperation *operation,
         output,
         roi,
         props->fit_gmic_output,
+        props->merge_layers,
         level,
         props->command
     );
@@ -117,14 +121,13 @@ get_required_for_output (GeglOperation       *operation,
 {
   const GeglRectangle *src = NULL;
   
-  #ifdef WITH_AUX
+#ifdef WITH_AUX
   GeglProperties *props = GEGL_PROPERTIES(operation);
   if (props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI)
-      src = gegl_operation_source_get_bounding_box(operation, "aux");
+      src = gegl_operation_source_get_bounding_box(operation, "input");
   else
 #endif
-    src = gegl_operation_source_get_bounding_box(operation, "input");
-
+  src = gegl_operation_source_get_bounding_box(operation, "input");
   if (!src || gegl_rectangle_is_infinite_plane((GeglRectangle*)src))
       return *roi;
 
@@ -137,15 +140,19 @@ get_cached_region (GeglOperation *op,
 {
   const GeglRectangle *src = NULL;
   
-  #ifdef WITH_AUX
-    GeglProperties *props = GEGL_PROPERTIES(op);
-    if (props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI)
-        src = gegl_operation_source_get_bounding_box(op, "aux");
-    else
-  #endif
-    src = gegl_operation_source_get_bounding_box(op, "input");
+#ifdef WITH_AUX
+  GeglProperties *props = GEGL_PROPERTIES(op);
+  if (props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI)
+      src = gegl_operation_source_get_bounding_box(op, "input");
+  else
+#endif
+  src = gegl_operation_source_get_bounding_box(op, "input");
+
+  if (src) {
+    return *src;
+  }
   
-    return src ? *src : gegl_rectangle_infinite_plane();
+  return gegl_rectangle_infinite_plane();
 }
 
 static GeglRectangle
@@ -156,7 +163,7 @@ get_bounding_box (GeglOperation *op)
 #ifdef WITH_AUX
   GeglProperties *props = GEGL_PROPERTIES(op);
   if (props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT || props->aux_mode == GEGL_GMIC_AUX_MODE_AUX_AS_OUTPUT_ROI)
-      src = gegl_operation_source_get_bounding_box(op, "aux");
+      src = gegl_operation_source_get_bounding_box(op, "input");
   else
 #endif
   src = gegl_operation_source_get_bounding_box(op, "input");

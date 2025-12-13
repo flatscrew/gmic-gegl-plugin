@@ -83,6 +83,7 @@
                               GeglBuffer    *output,
                               const GeglRectangle *roi,
                               bool fit_gmic_output,
+                              bool merge_layers,
                               gint level,
                               char *command)
  {
@@ -183,15 +184,19 @@
         opt.error_message_buffer  = error_buffer;
 
         char full_cmd[2048];
+        const char *merge = merge_layers ? " gui_merge_layers" : "";
         if (fit_gmic_output) {
             snprintf(full_cmd, sizeof(full_cmd),
-                    "WH:=w,h %s gui_merge_layers r $WH,1,100%%,2",
-                    command);
+                    "WH:=w,h %s%s r $WH,1,100%%,2",
+                    command,
+                    merge);
         } else {
             snprintf(full_cmd, sizeof(full_cmd),
-                    "%s gui_merge_layers",
-                    command);
+                    "%s%s",
+                    command,
+                    merge);
         }
+
 
         printf("running g'mic command: %s\n", full_cmd);
         gmic_call(full_cmd, &count, imgs, &opt);

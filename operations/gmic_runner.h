@@ -24,5 +24,6 @@ gboolean gmic_process_buffer(GeglBuffer    *input,
                              GeglBuffer    *output,
                              const GeglRectangle *roi,
                              bool use_input_roi,
+                             bool merge_layers,
                              gint level,
                              char *command);
