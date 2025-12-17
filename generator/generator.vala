@@ -113,7 +113,28 @@ class Main : Object {
         blacklist.add(
             "gui_download_all_data",
             "fx_color_presets", 
-            "fx_simulate_film"
+            "fx_simulate_film",
+            
+            "cl_implicitEqua",
+            "gcd_balance_lms",
+            "jpr_coltexindex",
+            "fx_hard_painting",
+            "pseudo_ecb",
+            "fx_MorphoPaint",
+            "fx_dodgesketch",
+            "fx_self_glitching_cascade",
+            "pr_streeze",
+            "pr_nonwoods",
+            "pr_sloppymess",
+            "gui_rep_colmt",
+            "rep_binary_quaddro_mc_gui",
+            "_cons_turb",
+            "fx_rep_compb",
+            "fx_vibrato",
+            "samj_Etoiles_Laser_LED", // mismatched quotes
+            "fx_ultrawarp4plus", // SIGSEGV
+            "Triangles_Shades_Adjacents", // SIGSEGV: strange color property name
+            "uglify" // strange param names
         );
         
         var stdlib = load_stdlib();

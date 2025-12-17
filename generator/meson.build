@@ -1,4 +1,5 @@
 generator_sources = [
+  normalizator,
   gmic_wrapper,
   gmic_filter,
   'operations_meson_build_generator.vala',

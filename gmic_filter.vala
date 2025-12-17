@@ -19,40 +19,6 @@
 
 namespace Gmic {
     
-    string normalize(
-        string text, 
-        bool remove_parenthesis = true, 
-        string space_replacemenet = "") 
-    {
-        var normalized = text;
-        if (remove_parenthesis) {
-            normalized = normalized.replace("\"", "");
-        }
-        
-        return normalized
-            .replace(" ", space_replacemenet)
-            .replace("-", "_")
-            .replace("(", "")
-            .replace(")", "")
-            .replace("[", "")
-            .replace("]", "") 
-            .replace("]", "") 
-            .replace("+", "_plus")
-            .replace("/", "")
-            .replace("!", "")
-            .replace("°", "")
-            .replace("'", "")
-            .replace(":", "")
-            .replace(";", "")
-            .replace("#", "")
-            .replace("*", "_")
-            .replace("^", "_")
-            .replace("%", "percent")
-            .replace("&", "and")
-            .replace("φ", "")
-            .replace(".", "");
-    }
-    
     string pascalize(string s) {
         var parts = s.split("_");
         for (int i = 0; i < parts.length; i++) {
@@ -205,13 +171,13 @@ namespace Gmic {
             var contents = "";
             
             if (param_definition.has_prefix("\"")) {
-                contents = param_definition.replace("\"", "");
+                contents = param_definition;
             } else {
                 var parts = param_definition.split("\"");
                 if (parts.length > 1) {
                     contents = "\"%s\"".printf(parts[1].strip());
                 } else {
-                    contents = param_definition;
+                    contents = "\"%s\"".printf(param_definition);
                 }
                 
             }
