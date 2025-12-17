@@ -203,11 +203,17 @@ namespace Gmic {
         
         public GmicTextParam.from(string name, string param_definition) {
             var contents = "";
+            
             if (param_definition.has_prefix("\"")) {
-                contents = param_definition;
+                contents = param_definition.replace("\"", "");
             } else {
                 var parts = param_definition.split("\"");
-                contents = "\"%s\"".printf(parts[1].strip());
+                if (parts.length > 1) {
+                    contents = "\"%s\"".printf(parts[1].strip());
+                } else {
+                    contents = param_definition;
+                }
+                
             }
             this(name, contents);
         }
@@ -840,9 +846,9 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
                     }
                     
                     // stop before parsing Testing
-                    if (category?.name == "Testing") {
-                        return filters;
-                    }
+                    //  if (category?.name == "Testing") {
+                    //      return filters;
+                    //  }
                     
                     continue;
                 }
@@ -881,7 +887,6 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
 
             var header = parts[0];
             var name = header.substring("#@gui".length).strip();
-
             var func_part = parts[1].strip();
             var func_parts = func_part.split(",");
             var command = func_parts[0].strip();
@@ -893,6 +898,7 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
                 filter.category = current_category;
             }
             return filter;
+            
         }
 
         private bool is_command_supported(string command_name) {
@@ -902,24 +908,26 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
         }
         
         private string? extract_category(string line) throws Error {
-            var m = Regex.match_simple(@"^#@gui _[^_]", line);
+            var m = Regex.match_simple(@"^#@gui _<(\\w+)>", line);
             if (!m) {
                 return null;
             }
         
-            var r1 = new Regex(@"^#@gui _");
-            var s = r1.replace(line, -1, 0, "");
-        
-            var r2 = new Regex(@"<[^>]+>");
-            s = r2.replace(s, -1, 0, "");
-        
-            var category = s.strip();
-            if (category == "") {
+            var re = new Regex(@"^#@gui _<(\\w+)>(.*?)</\\1>");
+            MatchInfo info;
+            if (!re.match(line, 0, out info)) {
                 return null;
             }
         
-            return category;
+            var tag = info.fetch(1);
+            if (tag == "i") {
+                return null;
+            }
+        
+            var category = info.fetch(2).strip();
+            return category == "" ? null : category;
         }
+        
         
         private GmicCategory? parse_category_line(string line) {
             string category = "Uncategorized";
