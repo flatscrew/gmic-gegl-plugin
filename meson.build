@@ -4,7 +4,6 @@ dependencies = [
   dependency('glib-2.0'),
   dependency('gobject-2.0'),
   dependency('gee-0.8'),
-  dependency('gegl-0.4'),
   dependency('template-glib-1.0')
 ]
 
@@ -49,7 +48,6 @@ test_executable = executable(
   test_sources,
   dependencies: dependencies,
 )
-
 
 test(
   'normalize',

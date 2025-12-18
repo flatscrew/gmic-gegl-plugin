@@ -1,0 +1,59 @@
+id: org.gimp.GIMP.Plugin.GmicGeglPlugins
+branch: "3"
+runtime: org.gimp.GIMP
+runtime-version: stable
+sdk: org.gnome.Sdk//48
+build-extension: true
+
+build-options:
+  prefix: /app/extensions/GmicGeglPlugins
+  prepend-path: /app/extensions/GmicGeglPlugins/bin
+  prepend-pkg-config-path: /app/extensions/GmicGeglPlugins/lib/pkgconfig
+  prepend-ld-library-path: /app/extensions/GmicGeglPlugins/lib
+  build-args:
+    - --share=network
+
+modules:
+  - name: openexr
+    builddir: true
+    buildsystem: cmake-ninja
+    build-options:
+      config-opts:
+        - -DCMAKE_INSTALL_LIBDIR=lib
+    sources:
+      - type: git
+        url: https://github.com/AcademySoftwareFoundation/openexr.git
+        tag: v3.3.1
+        
+  - name: template-glib
+    buildsystem: meson
+    config-opts:
+      - --libdir=lib
+      - -Dwith_introspection=true
+      - -Dwith_vapi=true
+    sources:
+      - type: git
+        url: https://gitlab.gnome.org/GNOME/template-glib.git
+        tag: template-glib-3-34
+
+  - name: gmic
+    buildsystem: simple
+    build-commands:
+      - make lib cli libc
+      - make install PREFIX=/app/extensions/GmicGeglPlugins GIMP_PKGLIBDIR=/app/extensions/GmicGeglPlugins
+    sources:
+      - type: git
+        url: https://github.com/flatscrew/gmic.git
+        # tag: v.3.6.5
+        tag: poc/configurable-gimp-plugin-directory
+
+  # disabled for now, probably not needed here at all?
+  # - name: gmic-gegl
+  #   buildsystem: meson
+  #   build-options:
+  #     env:
+  #       CPATH: /app/extensions/GmicGeglPlugins/include
+  #       VALAFLAGS: "--vapidir=/app/extensions/GmicGeglPlugins/share/vala/vapi"
+  #   sources:
+  #     - type: dir
+  #       path: .

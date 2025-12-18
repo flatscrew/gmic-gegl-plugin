@@ -1,4 +1,5 @@
 # Build shared library
+
 shared_library('gegl-gmic',
   sources: [
     gmic_runner, 'gegl_gmic.c',
