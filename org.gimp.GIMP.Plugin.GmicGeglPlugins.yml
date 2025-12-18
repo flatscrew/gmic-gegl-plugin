@@ -46,6 +46,7 @@ modules:
         url: https://github.com/flatscrew/gmic.git
         # tag: v.3.6.5
         tag: poc/configurable-gimp-plugin-directory
+        # just use original gmic here and provide a patch removing mkdir command for qt-plugin!
 
   # disabled for now, probably not needed here at all?
   # - name: gmic-gegl
