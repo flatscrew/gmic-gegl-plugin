@@ -1,0 +1,30 @@
+name: Release G'Mic plugins
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+          
+      - name: Release
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+
+          echo "Creating new release $tag..."
+          gh release create "$tag" --title "G'Mic GEGL plugins $tag"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
