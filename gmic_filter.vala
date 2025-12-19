@@ -536,6 +536,12 @@ property_double ({{name_normalized}}_y, _("{{name}} Y"), {{default_value_y}})
             }
         }
         
+        public string category_name {
+            owned get {
+                return category?.name;
+            }
+        }
+        
         public string[] gegl_enums {
             owned get {
                 var unique_enums = new Gee.ArrayList<string>();

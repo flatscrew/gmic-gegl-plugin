@@ -1,0 +1,18 @@
+Subject: [PATCH] Removed making gmic_gimp_qt directory
+---
+Index: src/Makefile
+IDEA additional info:
+<+>UTF-8
+===================================================================
+diff --git a/src/Makefile b/src/Makefile
+--- a/src/Makefile	(revision 0b48808413658bc3e3a62f093a397e72753e6a97)
++++ b/src/Makefile	(revision 12ea942713a2a636342859d6a372d1d0fe3ce92e)
+@@ -837,7 +837,7 @@
+ install:
+ 	mkdir -p $(DESTDIR)$(PREFIX)/$(INCLUDE)
+ 	mkdir -p $(DESTDIR)$(PREFIX)/$(BIN)
+-	mkdir -p $(DESTDIR)$(PLUGIN)/gmic_gimp_qt
++# 	mkdir -p $(DESTDIR)$(PLUGIN)/gmic_gimp_qt
+ 	mkdir -p $(DESTDIR)$(SHARE)/gmic
+ 	mkdir -p $(DESTDIR)$(PREFIX)/$(LIB)
+ 	@if [ -f gmic ]; then cp -f gmic $(DESTDIR)$(PREFIX)/$(BIN); fi

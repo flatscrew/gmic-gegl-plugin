@@ -77,7 +77,7 @@ ninja -C build
 ### Optional: disable the `aux` input pad for GEGL operations
 
 By default, the build enables an additional **aux** input pad on all generated
-GEGL operations. Some hosts (notably GIMP 3.0.4) require the aux pad to be disabled for
+GEGL operations. Some hosts (notably GIMP 3.0.4 and 3.0.6) require the aux pad to be disabled for
 non-destructive editing to work correctly (big thanks to [@LinuxBeaver](https://github.com/LinuxBeaver) for extensive plugin testing and reporting this issue!).
 
 You can turn it off by configuring Meson with:

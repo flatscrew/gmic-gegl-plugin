@@ -201,8 +201,8 @@ gegl_op_class_init (GeglOpClass *klass)
     "categories",  "generic",
     "reference-hash", "gmicruncommand",
     "description", _("Runs G'MIC command, EXPERIMENTAL!"),
-    "gimp:menu-path", "<Image>/Filters/G'MIC GEGL/",
-    "gimp:menu-label", _("G'MIC GEGL..."),
+    "gimp:menu-path", "<Image>/Filters/G'MIC/",
+    "gimp:menu-label", _("Run G'MIC command"),
     NULL);
 }
 

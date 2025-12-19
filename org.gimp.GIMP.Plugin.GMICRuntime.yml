@@ -1,0 +1,38 @@
+id: org.gimp.GIMP.Plugin.GMICRuntime
+branch: "3"
+runtime: org.gimp.GIMP
+runtime-version: stable
+sdk: org.gnome.Sdk//48
+build-extension: true
+
+build-options:
+  prefix: /app/extensions/GMICRuntime
+  prepend-path: /app/extensions/GMICRuntime/bin
+  prepend-pkg-config-path: /app/extensions/GMICRuntime/lib/pkgconfig
+  prepend-ld-library-path: /app/extensions/GMICRuntime/lib
+  build-args:
+    - --share=network
+
+modules:
+  - name: openexr
+    builddir: true
+    buildsystem: cmake-ninja
+    build-options:
+      config-opts:
+        - -DCMAKE_INSTALL_LIBDIR=lib
+    sources:
+      - type: git
+        url: https://github.com/AcademySoftwareFoundation/openexr.git
+        tag: v3.3.1
+        
+  - name: gmic
+    buildsystem: simple
+    build-commands:
+      - make lib cli libc
+      - make install PREFIX=/app/extensions/GMICRuntime
+    sources:
+      - type: git
+        url: https://github.com/GreycLab/gmic.git
+        tag: v.3.6.5
+      - type: patch
+        path: patches/remove_gmic_mkdir.patch

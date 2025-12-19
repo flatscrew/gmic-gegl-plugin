@@ -235,7 +235,7 @@ gegl_op_class_init (GeglOpClass *klass)
 {{if filter.has_description }}
     "description", _("{{filter.description}}"),
 {{end}}
-    "gimp:menu-path", "<Image>/Filters/G'MIC GEGL/",
+    "gimp:menu-path", "<Image>/Filters/G'MIC/{{filter.category_name}}/",
     "gimp:menu-label", _("{{filter.name}}"),
     NULL);
 }
