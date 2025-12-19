@@ -2,12 +2,12 @@
 set -e
 
 VERSION="$(cat VERSION)"
-NAME="Gimp3-GMIC-GEGL-$VERSION"
+NAME="RasterFlow-GMIC-GEGL-$VERSION"
 OUT="$NAME.run"
 TITLE="G'Mic GEGL Plugins $VERSION"
 
 # first compilation to get generator
-meson setup build -Dwith_generator=true -Dwith_aux=false
+meson setup build -Dwith_generator=true
 meson compile -C build
 
 # generate operations
@@ -18,8 +18,8 @@ DESTDIR=payload ninja -C build install
 
 mkdir -p build/payload
 cp VERSION build/payload
-cp gimp-linux/install.sh build/payload
-cp gimp-linux/uninstall.sh build/payload
+cp rasterflow-linux/install.sh build/payload
+cp rasterflow-linux/uninstall.sh build/payload
 
 makeself build/payload "$OUT" "$TITLE" ./install.sh
 
