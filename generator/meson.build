@@ -14,10 +14,6 @@ executable(
   dependencies: dependencies,
   include_directories: include_directories('/usr/include'),
   link_args: [
-    '-L/usr/lib/x86_64-linux-gnu',
     '-lgmic',
-    '-lm',
-    '-lpthread',
-    '-lX11',
   ]
 )
