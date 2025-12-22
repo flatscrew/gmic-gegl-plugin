@@ -19,6 +19,8 @@ including standalone `gegl` CLI or other applications embedding GEGL.
 
 This solution depends on the following libraries:
 
+- libgmic - C++ library used for reading G'MIC stdlib
+- libcgmic - C API wrapper for G'MIC (used by all GEGL operatons)
 - glib-2.0
 - gobject-2.0
 - gee-0.8
