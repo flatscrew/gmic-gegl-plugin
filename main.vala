@@ -17,8 +17,7 @@
  * along with RasterFlow.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-extern unowned string gmic_version_string();
-extern unowned string gmic_decompress_stdlib();
+extern unowned string gmic_get_stdlib();
 
 class Main : Object {
     
@@ -88,7 +87,7 @@ class Main : Object {
             error(e.message);
         }
     
-        return gmic_decompress_stdlib ();
+        return gmic_get_stdlib ();
     }
     
     public static int main(string[] args) {
@@ -102,8 +101,6 @@ class Main : Object {
             stderr.printf("%s\n", e.message);
             return 1;
         }
-        
-        message("G'MIC version: %s\n", gmic_version_string());
         
         var stdlib = load_stdlib();
         var parser = new Gmic.GmicFilterParser(

@@ -9,16 +9,13 @@ dependencies = [
 
 normalizator = files('normalizator.vala')
 gmic_filter = files('gmic_filter.vala')
-gmic_wrapper = files('gmic_wrapper.cpp')
+include = include_directories('include/')
 
 main_sources = [
-  gmic_wrapper,
   gmic_filter,
   normalizator,
   'main.vala'
 ]
-
-inc = include_directories('.')
 
 if get_option('with_aux')
   add_project_arguments(['-DWITH_AUX'], language: 'c')
@@ -28,9 +25,9 @@ executable(
   'gmic-parser',
   main_sources,
   dependencies: dependencies,
-  include_directories: include_directories('/usr/include'),
+  include_directories: include,
   link_args: [
-    '-lgmic'
+    '-lcgmic'
   ]
 )
 

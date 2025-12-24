@@ -4,7 +4,7 @@ executable(
     'test.c',
   ],
   dependencies: dependencies,
-  include_directories: include_directories('/usr/include'),
+  include_directories: include,
   link_args: [
     '-lcgmic',
   ]
