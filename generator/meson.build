@@ -1,5 +1,6 @@
 generator_sources = [
   normalizator,
+  stdlib_loader,
   gmic_filter,
   'operations_meson_build_generator.vala',
   'operation_generator.vala',

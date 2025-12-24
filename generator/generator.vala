@@ -17,8 +17,6 @@
  * along with RasterFlow.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-extern unowned string gmic_get_stdlib();
-
 class Main : Object {
     
     [CCode (array_length = false, array_null_terminated = true)]
@@ -55,34 +53,6 @@ class Main : Object {
         },
         { null }
     };
-    
-    static string load_stdlib () {
-        var config_dir = Environment.get_user_config_dir ();
-        var gmic_dir = Path.build_filename (config_dir, "gmic");
-    
-        try {
-            var dir = File.new_for_path (gmic_dir);
-            var enumerator = dir.enumerate_children (FileAttribute.STANDARD_NAME, 0);
-    
-            FileInfo info;
-            while ((info = enumerator.next_file ()) != null) {
-                var name = info.get_name();
-    
-                if (name.has_prefix("update") && name.has_suffix(".gmic")) {
-                    message("using stdlib from: %s", name);
-                    
-                    var path = Path.build_filename (gmic_dir, name);
-                    string contents;
-                    FileUtils.get_contents (path, out contents);
-                    return contents;
-                }
-            }
-        } catch (Error e) {
-            error(e.message);
-        }
-    
-        return gmic_get_stdlib ();
-    }
     
     public static int main(string[] args) {
         var context = new OptionContext("- G'MIC -> GEGL generator");
@@ -134,7 +104,7 @@ class Main : Object {
             "uglify" // strange param names
         );
         
-        var stdlib = load_stdlib();
+        var stdlib = Gmic.load_stdlib();
         var parser = new Gmic.GmicFilterParser(
             Gmic.GmicFilterPredicate.any().and(Gmic.GmicFilterPredicate.is_any_of(include_commands))
         );

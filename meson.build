@@ -7,11 +7,13 @@ dependencies = [
   dependency('template-glib-1.0')
 ]
 
-normalizator = files('normalizator.vala')
+stdlib_loader = files('stdlib_loader.vala')
 gmic_filter = files('gmic_filter.vala')
+normalizator = files('normalizator.vala')
 include = include_directories('include/')
 
 main_sources = [
+  stdlib_loader,
   gmic_filter,
   normalizator,
   'main.vala'
